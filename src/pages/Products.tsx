@@ -6,7 +6,7 @@ export default function Products() {
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="flex flex-wrap justify-between gap-3 mb-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black leading-tight tracking-tight">Product Management</h1>

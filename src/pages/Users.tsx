@@ -45,7 +45,7 @@ export default function Users() {
   );
 
   return (
-    <div className="p-8 relative">
+    <div className="p-4 sm:p-8 relative">
       <div className="flex flex-wrap justify-between gap-3 mb-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black leading-tight tracking-tight">User Management</h1>

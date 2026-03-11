@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Bolt, 
@@ -13,7 +14,9 @@ import {
   Search,
   Bell,
   HelpCircle,
-  Shield
+  Shield,
+  Menu,
+  X
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -24,6 +27,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export default function Layout() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, logout, isLoading } = useAuth();
@@ -51,17 +55,36 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background-light text-slate-900 font-display">
+    <div className="flex min-h-screen bg-background-light text-slate-900 font-display relative">
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-primary/10 bg-white flex flex-col shrink-0 sticky top-0 h-screen">
-        <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-            <Bolt className="w-6 h-6" />
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 border-r border-primary/10 bg-white flex flex-col shrink-0 h-screen transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <div className="p-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+              <Bolt className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-bold leading-tight uppercase tracking-wider">Muskaan</h1>
+              <p className="text-primary text-xs font-medium">Admin Panel</p>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-bold leading-tight uppercase tracking-wider">Muskaan</h1>
-            <p className="text-primary text-xs font-medium">Admin Panel</p>
-          </div>
+          <button 
+            className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
@@ -69,6 +92,7 @@ export default function Layout() {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
                 isActive 
@@ -89,6 +113,7 @@ export default function Layout() {
                 <NavLink
                   key={item.path}
                   to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) => cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
                     isActive 
@@ -121,28 +146,34 @@ export default function Layout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 w-full lg:w-auto">
         {/* Header */}
-        <header className="h-16 bg-white/80 border-b border-primary/10 flex items-center justify-between px-8 sticky top-0 z-10 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900 capitalize">
+        <header className="h-16 bg-white/80 border-b border-primary/10 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 backdrop-blur-md">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button 
+              className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 capitalize truncate">
               {location.pathname.split('/')[1] || 'Dashboard'}
             </h2>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input 
                 type="text" 
                 placeholder="Search..." 
-                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm w-48 lg:w-64 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
               />
             </div>
             <button className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+            <button className="hidden sm:block p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
               <HelpCircle className="w-5 h-5" />
             </button>
           </div>

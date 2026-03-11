@@ -48,27 +48,27 @@ export default function POS() {
     : products.filter(p => p.category === activeCategory);
 
   return (
-    <div className="flex h-screen bg-background-light font-display overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen bg-background-light font-display lg:overflow-hidden overflow-y-auto">
       {/* Left Side - Products */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-slate-200">
+      <div className="flex-1 flex flex-col lg:h-full min-h-[600px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-slate-200">
         {/* Header */}
-        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-4">
+        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0 gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <Link to="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-xl font-bold text-slate-900">Point of Sale</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">Point of Sale</h1>
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <div className="flex items-center flex-1 max-w-md justify-end">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 sm:w-5 h-4 sm:h-5" />
               <input 
                 type="text" 
-                placeholder="Search products, barcode..." 
-                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+                placeholder="Search products..." 
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary outline-none text-xs sm:text-sm"
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors">
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors hidden sm:block">
                 <ScanLine className="w-4 h-4" />
               </button>
             </div>
@@ -123,7 +123,7 @@ export default function POS() {
       </div>
 
       {/* Right Side - Cart */}
-      <div className="w-[400px] flex flex-col h-full bg-white shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-10">
+      <div className="w-full lg:w-[400px] flex flex-col lg:h-full min-h-[500px] lg:min-h-0 bg-white shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-10">
         {/* Customer Selection */}
         <div className="p-4 border-b border-slate-200 shrink-0">
           <button className="w-full flex items-center justify-between p-3 border border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors group">
