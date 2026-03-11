@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('admin@muskaan.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
@@ -43,11 +43,6 @@ export default function Login() {
       console.error('Login error:', err);
       setError('An error occurred during login.');
     }
-  };
-
-  const fillDemoCredentials = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('password123');
   };
 
   return (
@@ -129,38 +124,6 @@ export default function Login() {
                 <LogIn className="w-4 h-4" />
               </button>
             </form>
-          </div>
-          
-          <div className="px-8 pb-8">
-            <div className="relative flex items-center py-2">
-              <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink-0 mx-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Demo Accounts</span>
-              <div className="flex-grow border-t border-slate-200"></div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2 mt-4">
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('admin@muskaan.com')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
-              >
-                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Admin</span>
-              </button>
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('rahul@muskaan.com')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
-              >
-                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Manager</span>
-              </button>
-              <button 
-                type="button"
-                onClick={() => fillDemoCredentials('priya@muskaan.com')}
-                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
-              >
-                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Cashier</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
