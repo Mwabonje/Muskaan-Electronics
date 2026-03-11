@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type User, type Role } from '../db/db';
 
@@ -8,6 +8,7 @@ export default function Users() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   // New User Form State
   const [formData, setFormData] = useState({
@@ -235,12 +236,19 @@ export default function Users() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input 
                     required
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                    className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
                 <p className="text-xs text-slate-500">User will be required to change this upon first login.</p>
               </div>
