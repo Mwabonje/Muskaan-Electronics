@@ -1,0 +1,241 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, ShoppingCart, ArrowLeft, Plus, Minus, Trash2, CreditCard, Banknote, User, ScanLine } from 'lucide-react';
+
+const products = [
+  { id: 1, name: 'iPhone 15 Pro Max', price: 1199.00, stock: 45, category: 'Smartphones', image: 'https://picsum.photos/seed/iphone/200' },
+  { id: 2, name: 'Samsung QN90C Neo QLED', price: 1599.00, stock: 8, category: 'Televisions', image: 'https://picsum.photos/seed/tv/200' },
+  { id: 3, name: 'Sony WH-1000XM5', price: 349.99, stock: 12, category: 'Audio', image: 'https://picsum.photos/seed/headphones/200' },
+  { id: 4, name: 'MacBook Air M3 15"', price: 1299.00, stock: 22, category: 'Laptops', image: 'https://picsum.photos/seed/macbook/200' },
+  { id: 5, name: 'Dell XPS 13', price: 999.00, stock: 5, category: 'Laptops', image: 'https://picsum.photos/seed/dell/200' },
+  { id: 6, name: 'iPad Pro 12.9"', price: 1099.00, stock: 15, category: 'Tablets', image: 'https://picsum.photos/seed/ipad/200' },
+  { id: 7, name: 'Apple Watch Series 9', price: 399.00, stock: 30, category: 'Wearables', image: 'https://picsum.photos/seed/watch/200' },
+  { id: 8, name: 'Bose QuietComfort Ultra', price: 429.00, stock: 18, category: 'Audio', image: 'https://picsum.photos/seed/bose/200' },
+];
+
+export default function POS() {
+  const [cart, setCart] = useState<{ product: typeof products[0], quantity: number }[]>([]);
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const categories = ['All', 'Smartphones', 'Laptops', 'Televisions', 'Audio', 'Tablets', 'Wearables'];
+
+  const addToCart = (product: typeof products[0]) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (id: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === id) {
+        const newQuantity = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQuantity };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: number) => {
+    setCart(prev => prev.filter(item => item.product.id !== id));
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const tax = subtotal * 0.18; // 18% GST
+  const total = subtotal + tax;
+
+  const filteredProducts = activeCategory === 'All' 
+    ? products 
+    : products.filter(p => p.category === activeCategory);
+
+  return (
+    <div className="flex h-screen bg-background-light font-display overflow-hidden">
+      {/* Left Side - Products */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-slate-200">
+        {/* Header */}
+        <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-xl font-bold text-slate-900">Point of Sale</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative w-96">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input 
+                type="text" 
+                placeholder="Search products, barcode..." 
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary outline-none text-sm"
+              />
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors">
+                <ScanLine className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="bg-white border-b border-slate-200 p-4 shrink-0 overflow-x-auto">
+          <div className="flex gap-2">
+            {categories.map(category => (
+              <button
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                  activeCategory === category 
+                    ? 'bg-primary text-white shadow-md shadow-primary/20' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredProducts.map(product => (
+              <button
+                key={product.id}
+                onClick={() => addToCart(product)}
+                className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all group text-left flex flex-col"
+              >
+                <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-slate-700 shadow-sm">
+                    {product.stock} in stock
+                  </div>
+                </div>
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">{product.category}</p>
+                    <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-tight">{product.name}</h3>
+                  </div>
+                  <p className="text-primary font-bold mt-3">${product.price.toFixed(2)}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Cart */}
+      <div className="w-[400px] flex flex-col h-full bg-white shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-10">
+        {/* Customer Selection */}
+        <div className="p-4 border-b border-slate-200 shrink-0">
+          <button className="w-full flex items-center justify-between p-3 border border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors group">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                <User className="w-4 h-4" />
+              </div>
+              <span className="font-medium text-sm">Add Customer</span>
+            </div>
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Cart Items */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {cart.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
+                <ShoppingCart className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-sm font-medium">Cart is empty</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {cart.map(item => (
+                <div key={item.product.id} className="flex gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                  <img src={item.product.image} alt={item.product.name} className="w-16 h-16 rounded-lg object-cover border border-slate-200 bg-white" referrerPolicy="no-referrer" />
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-sm font-bold text-slate-900 line-clamp-2 pr-2">{item.product.name}</h4>
+                      <button 
+                        onClick={() => removeFromCart(item.product.id)}
+                        className="text-slate-400 hover:text-rose-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-primary font-bold text-sm">${item.product.price.toFixed(2)}</p>
+                      <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+                        <button 
+                          onClick={() => updateQuantity(item.product.id, -1)}
+                          className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                        <button 
+                          onClick={() => updateQuantity(item.product.id, 1)}
+                          className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Totals & Payment */}
+        <div className="border-t border-slate-200 p-6 shrink-0 bg-slate-50">
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>Subtotal</span>
+              <span className="font-medium text-slate-900">${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>Tax (18%)</span>
+              <span className="font-medium text-slate-900">${tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>Discount</span>
+              <span className="font-medium text-emerald-500">-$0.00</span>
+            </div>
+            <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
+              <span className="text-lg font-bold text-slate-900">Total</span>
+              <span className="text-2xl font-black text-primary">${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button 
+              disabled={cart.length === 0}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              <Banknote className="w-5 h-5" />
+              Cash
+            </button>
+            <button 
+              disabled={cart.length === 0}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:border-primary hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              <CreditCard className="w-5 h-5" />
+              Card
+            </button>
+          </div>
+          
+          <button 
+            disabled={cart.length === 0}
+            className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+          >
+            Pay ${total.toFixed(2)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
