@@ -7,6 +7,7 @@ export interface User {
   id?: number;
   name: string;
   email: string;
+  password?: string;
   role: Role;
   status: Status;
   lastLogin: string;
@@ -35,13 +36,24 @@ db.version(2).stores({
   products: '++id, name, brand, category, status'
 });
 
+db.version(3).stores({
+  users: '++id, name, email, role, status',
+  products: '++id, name, brand, category, status'
+}).upgrade(tx => {
+  return tx.table('users').toCollection().modify(user => {
+    if (!user.password) {
+      user.password = user.email === 'admin@muskaan.com' ? 'admin123' : 'password123';
+    }
+  });
+});
+
 // Seed initial data if empty
 db.on('populate', () => {
   db.users.bulkAdd([
-    { name: 'Admin User', email: 'admin@muskaan.com', role: 'Super Admin', status: 'Active', lastLogin: 'Just now' },
-    { name: 'Rahul Sharma', email: 'rahul@muskaan.com', role: 'Manager', status: 'Active', lastLogin: '2 hours ago' },
-    { name: 'Priya Mehta', email: 'priya@muskaan.com', role: 'Cashier', status: 'Active', lastLogin: 'Yesterday' },
-    { name: 'Amit Kumar', email: 'amit@muskaan.com', role: 'Cashier', status: 'Inactive', lastLogin: '5 days ago' },
+    { name: 'Admin User', email: 'admin@muskaan.com', password: 'admin123', role: 'Super Admin', status: 'Active', lastLogin: 'Just now' },
+    { name: 'Rahul Sharma', email: 'rahul@muskaan.com', password: 'password123', role: 'Manager', status: 'Active', lastLogin: '2 hours ago' },
+    { name: 'Priya Mehta', email: 'priya@muskaan.com', password: 'password123', role: 'Cashier', status: 'Active', lastLogin: 'Yesterday' },
+    { name: 'Amit Kumar', email: 'amit@muskaan.com', password: 'password123', role: 'Cashier', status: 'Inactive', lastLogin: '5 days ago' },
   ]);
   
   db.products.bulkAdd([

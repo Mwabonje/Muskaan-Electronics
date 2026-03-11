@@ -24,6 +24,7 @@ export default function Users() {
     const newUser = {
       name: `${formData.firstName} ${formData.lastName}`,
       email: formData.email,
+      password: formData.password,
       role: formData.role,
       status: 'Active' as const,
       lastLogin: 'Never'

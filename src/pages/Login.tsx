@@ -18,11 +18,14 @@ export default function Login() {
     setError('');
     
     try {
-      // In a real app, you'd verify the password too.
-      // For this demo, we just check if the user exists by email.
       const user = await db.users.where('email').equalsIgnoreCase(email).first();
       
       if (user) {
+        if (user.password !== password) {
+          setError('Invalid email or password.');
+          return;
+        }
+
         if (user.status === 'Inactive') {
           setError('This account is inactive. Please contact an administrator.');
           return;
