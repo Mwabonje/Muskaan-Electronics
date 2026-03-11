@@ -18,27 +18,93 @@ export interface Product {
   name: string;
   brand: string;
   category: string;
-  cost: string;
-  selling: string;
+  cost: string | number;
+  selling: string | number;
   stock: number;
+  minStock?: number;
   status: string;
   image?: string;
+}
+
+export interface SaleItem {
+  productId: number;
+  name: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+}
+
+export interface Sale {
+  id?: number;
+  items: SaleItem[];
+  totalAmount: number;
+  paymentMethod: string;
+  date: string;
+  customerName?: string;
+  notes?: string;
+}
+
+export interface Quote {
+  id?: number;
+  items: SaleItem[];
+  totalAmount: number;
+  date: string;
+  customerName?: string;
+  notes?: string;
+  status: 'Pending' | 'Accepted' | 'Rejected';
+}
+
+export interface PurchaseOrder {
+  id?: number;
+  items: SaleItem[];
+  totalAmount: number;
+  supplierName: string;
+  date: string;
+  expectedDeliveryDate?: string;
+  status: 'Pending' | 'Delivered' | 'Cancelled';
+  notes?: string;
+}
+
+export interface Delivery {
+  id?: number;
+  purchaseOrderId?: number;
+  items: SaleItem[];
+  supplierName: string;
+  date: string;
+  receivedBy: string;
+  notes?: string;
+}
+
+export interface Return {
+  id?: number;
+  saleId?: number;
+  items: SaleItem[];
+  totalRefund: number;
+  customerName: string;
+  date: string;
+  reason: string;
+  condition: 'Good' | 'Damaged';
 }
 
 const db = new Dexie('MuskaanDB') as Dexie & {
   users: EntityTable<User, 'id'>;
   products: EntityTable<Product, 'id'>;
+  sales: EntityTable<Sale, 'id'>;
+  quotes: EntityTable<Quote, 'id'>;
+  purchaseOrders: EntityTable<PurchaseOrder, 'id'>;
+  deliveries: EntityTable<Delivery, 'id'>;
+  returns: EntityTable<Return, 'id'>;
 };
 
 // Schema declaration
-db.version(2).stores({
+db.version(4).stores({
   users: '++id, name, email, role, status',
-  products: '++id, name, brand, category, status'
-});
-
-db.version(3).stores({
-  users: '++id, name, email, role, status',
-  products: '++id, name, brand, category, status'
+  products: '++id, name, brand, category, status',
+  sales: '++id, date, customerName, paymentMethod',
+  quotes: '++id, date, customerName, status',
+  purchaseOrders: '++id, date, supplierName, status',
+  deliveries: '++id, date, supplierName, purchaseOrderId',
+  returns: '++id, date, customerName, saleId'
 }).upgrade(tx => {
   return tx.table('users').toCollection().modify(user => {
     if (!user.password) {

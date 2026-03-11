@@ -8,6 +8,7 @@ export default function POS() {
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = ['All', 'Smartphones', 'Laptops', 'Televisions', 'Audio', 'Tablets', 'Wearables'];
 
@@ -43,9 +44,12 @@ export default function POS() {
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + tax;
 
-  const filteredProducts = activeCategory === 'All' 
-    ? products 
-    : products.filter(p => p.category === activeCategory);
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-background-light font-display lg:overflow-hidden overflow-y-auto">
@@ -66,6 +70,8 @@ export default function POS() {
               <input 
                 type="text" 
                 placeholder="Search products..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary outline-none text-xs sm:text-sm"
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors hidden sm:block">
@@ -124,19 +130,6 @@ export default function POS() {
 
       {/* Right Side - Cart */}
       <div className="w-full lg:w-[400px] flex flex-col lg:h-full min-h-[500px] lg:min-h-0 bg-white shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-10">
-        {/* Customer Selection */}
-        <div className="p-4 border-b border-slate-200 shrink-0">
-          <button className="w-full flex items-center justify-between p-3 border border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-primary hover:text-primary hover:bg-primary/5 transition-colors group">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                <User className="w-4 h-4" />
-              </div>
-              <span className="font-medium text-sm">Add Customer</span>
-            </div>
-            <Plus className="w-4 h-4" />
-          </button>
-        </div>
-
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4">
           {cart.length === 0 ? (

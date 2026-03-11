@@ -1,22 +1,23 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  Bolt, 
+  ShoppingCart, 
   LayoutDashboard, 
   Package, 
-  Warehouse, 
   Receipt, 
-  Users, 
+  ClipboardList,
+  Truck,
+  RotateCcw,
   BarChart3, 
-  UserCog, 
+  Mail,
+  Users,
   Settings as SettingsIcon,
   LogOut,
   Search,
   Bell,
-  HelpCircle,
-  Shield,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -34,20 +35,18 @@ export default function Layout() {
   
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Products', path: '/products', icon: Package },
-    { name: 'Inventory', path: '/inventory', icon: Warehouse },
-    { name: 'Sales', path: '/pos', icon: Receipt },
-    { name: 'Customers', path: '/customers', icon: Users },
+    { name: 'Inventory', path: '/inventory', icon: Package },
+    { name: 'Sales History', path: '/sales', icon: Receipt },
+    { name: 'Quotes', path: '/quotes', icon: FileText },
+    { name: 'Purchase Orders', path: '/purchase-orders', icon: ClipboardList },
+    { name: 'Deliveries', path: '/deliveries', icon: Truck },
+    { name: 'Customer Returns', path: '/returns', icon: RotateCcw },
     { name: 'Reports', path: '/reports', icon: BarChart3, hideFor: ['Cashier'] },
-  ];
-
-  const systemItems = [
-    { name: 'Users', path: '/users', icon: UserCog, hideFor: ['Cashier'] },
-    { name: 'Settings', path: '/settings', icon: SettingsIcon, hideFor: ['Cashier'] },
+    { name: 'Messages', path: '/messages', icon: Mail },
+    { name: 'User Management', path: '/users', icon: Users, hideFor: ['Cashier'] },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.hideFor?.includes(role));
-  const filteredSystemItems = systemItems.filter(item => !item.hideFor?.includes(role));
 
   const handleLogout = () => {
     logout();
@@ -55,127 +54,106 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background-light text-slate-900 font-display relative">
+    <div className="flex min-h-screen bg-[#0f172a] text-slate-300 font-display relative">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-slate-900/80 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 border-r border-primary/10 bg-white flex flex-col shrink-0 h-screen transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-[#0B1120] border-r border-slate-800 flex flex-col shrink-0 h-screen transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-              <Bolt className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+              <ShoppingCart className="w-6 h-6" />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm font-bold leading-tight uppercase tracking-wider">Muskaan</h1>
-              <p className="text-primary text-xs font-medium">Admin Panel</p>
+              <h1 className="text-base font-bold text-white leading-tight">Muskaan Electronics</h1>
+              <p className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Retail Manager</p>
             </div>
           </div>
           <button 
-            className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
+            className="lg:hidden p-2 text-slate-400 hover:bg-slate-800 rounded-lg"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
           {filteredNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                 isActive 
-                  ? "bg-primary text-white font-medium shadow-lg shadow-primary/20" 
-                  : "text-slate-600 hover:bg-primary/10 hover:text-primary"
+                  ? "bg-blue-600 text-white font-medium" 
+                  : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
               )}
             >
               <item.icon className="w-5 h-5" />
               <span className="text-sm">{item.name}</span>
             </NavLink>
           ))}
-          
-          {filteredSystemItems.length > 0 && (
-            <>
-              <div className="pt-4 pb-2 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">System</div>
-              
-              {filteredSystemItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors",
-                    isActive 
-                      ? "bg-primary text-white font-medium shadow-lg shadow-primary/20" 
-                      : "text-slate-600 hover:bg-primary/10 hover:text-primary"
-                  )}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span className="text-sm">{item.name}</span>
-                </NavLink>
-              ))}
-            </>
-          )}
         </nav>
         
-        <div className="p-4 mt-auto border-t border-primary/10">
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-100">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-              {user?.name ? user.name.charAt(0).toUpperCase() : <UserCog className="w-4 h-4" />}
+        <div className="p-4 mt-auto border-t border-slate-800">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-slate-800">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 font-bold shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p className="text-xs font-bold text-white truncate">Super Administrator</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider truncate">Super Admin</p>
+              </div>
             </div>
-            <div className="overflow-hidden flex-1">
-              <p className="text-xs font-bold truncate">{user?.name || 'Guest'}</p>
-              <p className="text-[10px] text-slate-500 truncate">{role}</p>
-            </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-primary transition-colors" title="Logout">
-              <LogOut className="w-4 h-4" />
+            <button className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2" title="Settings">
+              <SettingsIcon className="w-4 h-4" />
             </button>
           </div>
+          <button onClick={handleLogout} className="mt-2 w-full flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/50">
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm">Log Out</span>
+          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 w-full lg:w-auto">
+      <main className="flex-1 flex flex-col min-w-0 w-full lg:w-auto bg-[#0f172a]">
         {/* Header */}
-        <header className="h-16 bg-white/80 border-b border-primary/10 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 backdrop-blur-md">
-          <div className="flex items-center gap-2 sm:gap-4">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30 bg-[#0f172a]">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1">
             <button 
-              className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+              className="lg:hidden p-2 -ml-2 text-slate-400 hover:bg-slate-800 rounded-lg"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="w-5 h-5" />
             </button>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 capitalize truncate">
-              {location.pathname.split('/')[1] || 'Dashboard'}
-            </h2>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <div className="relative hidden md:block w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
               <input 
                 type="text" 
-                placeholder="Search..." 
-                className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg text-sm w-48 lg:w-64 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                placeholder="Search items..." 
+                className="w-full pl-10 pr-4 py-2 bg-[#1e293b] border border-slate-700/50 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
               />
             </div>
-            <button className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-slate-400 hover:bg-slate-800 rounded-lg border border-slate-800">
+              <Bell className="w-4 h-4" />
             </button>
-            <button className="hidden sm:block p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
-              <HelpCircle className="w-5 h-5" />
-            </button>
+            <div className="hidden sm:flex items-center text-sm text-slate-400 font-mono">
+              Mar 11, 2026
+            </div>
           </div>
         </header>
         

@@ -12,9 +12,14 @@ import Products from './pages/Products';
 import POS from './pages/POS';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
-import Customers from './pages/Customers';
 import Users from './pages/Users';
 import Settings from './pages/Settings';
+import SalesHistory from './pages/SalesHistory';
+import PurchaseOrders from './pages/PurchaseOrders';
+import Deliveries from './pages/Deliveries';
+import CustomerReturns from './pages/CustomerReturns';
+import Messages from './pages/Messages';
+import Quotes from './pages/Quotes';
 
 // A simple wrapper to protect routes based on role
 function ProtectedRoute({ children, restrictedRoles = [] }: { children: React.ReactNode, restrictedRoles?: string[] }) {
@@ -64,7 +69,12 @@ export default function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<Products />} />
             <Route path="inventory" element={<Inventory />} />
-            <Route path="customers" element={<Customers />} />
+            <Route path="sales" element={<SalesHistory />} />
+            <Route path="quotes" element={<Quotes />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="deliveries" element={<Deliveries />} />
+            <Route path="returns" element={<CustomerReturns />} />
+            <Route path="messages" element={<Messages />} />
             
             {/* Restricted Routes */}
             <Route path="reports" element={

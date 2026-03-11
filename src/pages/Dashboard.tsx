@@ -1,193 +1,323 @@
-import { Package, AlertTriangle, ShoppingCart, IndianRupee, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  DollarSign, 
+  ShoppingBag, 
+  PieChart, 
+  AlertTriangle,
+  Filter,
+  Download,
+  ShoppingCart,
+  ClipboardList,
+  Truck,
+  RotateCcw,
+  ChevronRight,
+  History,
+  List,
+  FileText
+} from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-
-const data = [
-  { name: 'MON', value: 4000 },
-  { name: 'TUE', value: 3000 },
-  { name: 'WED', value: 2000 },
-  { name: 'THU', value: 2780 },
-  { name: 'FRI', value: 1890 },
-  { name: 'SAT', value: 2390 },
-  { name: 'SUN', value: 3490 },
-];
+import NewSaleModal from '../components/NewSaleModal';
+import NewQuoteModal from '../components/NewQuoteModal';
+import CreateLPOModal from '../components/CreateLPOModal';
+import LogDeliveryModal from '../components/LogDeliveryModal';
+import CustomerReturnModal from '../components/CustomerReturnModal';
 
 export default function Dashboard() {
+  const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
+  const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
+  const [isCreateLPOModalOpen, setIsCreateLPOModalOpen] = useState(false);
+  const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
+  const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] = useState(false);
+  
   const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
   const lowStockCount = useLiveQuery(() => db.products.where('status').equals('Low Stock').count(), []) || 0;
+  const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-[#0f172a] min-h-full text-slate-300">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Package className="w-5 h-5" />
+        <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
+          <div className="flex justify-between items-start">
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Total Inventory Value</p>
+            <div className="p-1.5 bg-blue-900/30 rounded-lg text-blue-500">
+              <DollarSign className="w-4 h-4" />
             </div>
-            <span className="text-emerald-500 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-full">
-              +2.4% <TrendingUp className="w-3 h-3" />
-            </span>
           </div>
-          <p className="text-slate-500 text-sm font-medium">Total Products</p>
-          <p className="text-2xl font-bold text-slate-900">{productsCount}</p>
+          <div>
+            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+              <TrendingUpIcon className="w-3 h-3" /> Based on cost price
+            </p>
+          </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
-              <AlertTriangle className="w-5 h-5" />
+        <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
+          <div className="flex justify-between items-start">
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Today's Revenue</p>
+            <div className="p-1.5 bg-purple-900/30 rounded-lg text-purple-500">
+              <ShoppingBag className="w-4 h-4" />
             </div>
-            <span className="text-amber-600 text-xs font-bold flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
-              Low Stock
-            </span>
           </div>
-          <p className="text-slate-500 text-sm font-medium">Products Low in Stock</p>
-          <p className="text-2xl font-bold text-slate-900">{lowStockCount}</p>
+          <div>
+            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-[10px] font-bold text-purple-500 uppercase">
+              0 Transactions
+            </p>
+          </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <ShoppingCart className="w-5 h-5" />
+        <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
+          <div className="flex justify-between items-start">
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Today's Profit</p>
+            <div className="p-1.5 bg-teal-900/30 rounded-lg text-teal-500">
+              <PieChart className="w-4 h-4" />
             </div>
-            <span className="text-emerald-500 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-full">
-              +12.3% <TrendingUp className="w-3 h-3" />
-            </span>
           </div>
-          <p className="text-slate-500 text-sm font-medium">Total Sales Today</p>
-          <p className="text-2xl font-bold text-slate-900">156</p>
+          <div>
+            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-[10px] font-bold text-teal-500 uppercase">
+              Net Income (Est)
+            </p>
+          </div>
         </div>
         
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <IndianRupee className="w-5 h-5" />
+        <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden">
+          <AlertTriangle className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-800/50" />
+          <div className="flex justify-between items-start relative z-10">
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Low Stock Items</p>
+            <div className="p-1.5 bg-slate-800 rounded-lg text-slate-400">
+              <AlertTriangle className="w-4 h-4" />
             </div>
-            <span className="text-emerald-500 text-xs font-bold flex items-center gap-1 bg-emerald-50 px-2 py-1 rounded-full">
-              +8.7% <TrendingUp className="w-3 h-3" />
-            </span>
           </div>
-          <p className="text-slate-500 text-sm font-medium">Total Revenue</p>
-          <p className="text-2xl font-bold text-slate-900">₹45,200</p>
+          <div className="relative z-10">
+            <p className="text-2xl font-bold text-white mb-1">{lowStockCount} Items</p>
+            <p className="text-[10px] font-bold text-emerald-500 uppercase">
+              All Stocked Up
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sales Overview Line Chart */}
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Sales Overview</h3>
-              <p className="text-sm text-slate-500">Weekly revenue performance</p>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Inventory Overview */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-emerald-500 text-sm font-bold">+14%</span>
-              <select className="bg-slate-50 border-none rounded-lg text-xs font-medium focus:ring-primary outline-none">
-                <option>Last 7 Days</option>
-                <option>Last 30 Days</option>
-              </select>
+              <List className="w-5 h-5 text-slate-400" />
+              <h2 className="text-lg font-bold text-white">Inventory Overview</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+                <Filter className="w-3.5 h-3.5" />
+                Filter
+              </button>
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+                <Download className="w-3.5 h-3.5" />
+                Export CSV
+              </button>
             </div>
           </div>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#741ce9" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#741ce9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} dy={10} />
-                <Tooltip />
-                <Area type="monotone" dataKey="value" stroke="#741ce9" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-              </AreaChart>
-            </ResponsiveContainer>
+
+          <div className="bg-[#0B1120] rounded-xl border border-slate-800 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item Name</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stock Level</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unit</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
+                        No items found matching your criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    products.slice(0, 5).map((product) => (
+                      <tr key={product.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium text-white">{product.name}</td>
+                        <td className="px-6 py-4 text-sm text-slate-400">{product.category}</td>
+                        <td className="px-6 py-4 text-sm text-slate-400">{product.stock}</td>
+                        <td className="px-6 py-4 text-sm text-slate-400">Pcs</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${
+                            product.status === 'In Stock' ? 'bg-emerald-500/10 text-emerald-500' :
+                            product.status === 'Low Stock' ? 'bg-amber-500/10 text-amber-500' :
+                            'bg-rose-500/10 text-rose-500'
+                          }`}>
+                            {product.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-300 text-right">Ksh {product.selling}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        {/* Top Selling Bar Chart */}
-        <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Top Selling Products</h3>
-              <p className="text-sm text-slate-500">Units sold this month</p>
-            </div>
-            <span className="text-primary text-sm font-bold bg-primary/10 px-3 py-1 rounded-lg">480 Total Units</span>
-          </div>
-          <div className="flex items-end justify-between h-64 gap-4 px-2">
-            {[
-              { label: 'LED TV', height: '70%', value: 120 },
-              { label: 'WASHING MACHINE', height: '45%', value: 85 },
-              { label: 'AC', height: '60%', value: 110 },
-              { label: 'FRIDGE', height: '90%', value: 165, active: true },
-              { label: 'OVEN', height: '35%', value: 60 },
-            ].map((item, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                <div 
-                  className={`w-full ${item.active ? 'bg-primary' : 'bg-primary/20 hover:bg-primary'} rounded-t-lg transition-all relative group`} 
-                  style={{ height: item.height }}
-                >
-                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {item.value} Units
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase text-center">{item.label}</span>
+        {/* Right Column - Quick Actions & Recent Activity */}
+        <div className="space-y-8">
+          {/* Quick Actions */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="text-yellow-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" />
+                </svg>
               </div>
-            ))}
+              <h2 className="text-lg font-bold text-white">Quick Actions</h2>
+            </div>
+
+            <div className="space-y-3">
+              <button 
+                onClick={() => setIsNewSaleModalOpen(true)}
+                className="w-full flex items-center justify-between p-4 bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-blue-500/50 rounded-lg text-white">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">New Sale</p>
+                    <p className="text-[10px] text-blue-200">Record customer transaction</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-200 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => setIsNewQuoteModalOpen(true)}
+                className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-blue-400 group-hover:bg-blue-500/10 transition-colors">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">New Quote</p>
+                    <p className="text-[10px] text-slate-500">Generate estimate for clients</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+              </button>
+
+              <button 
+                onClick={() => setIsCreateLPOModalOpen(true)}
+                className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-slate-800 rounded-lg text-purple-400">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">Create LPO</p>
+                    <p className="text-[10px] text-slate-500">Order stock from suppliers</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => setIsLogDeliveryModalOpen(true)}
+                className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-slate-800 rounded-lg text-blue-400">
+                    <Truck className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">Log Delivery</p>
+                    <p className="text-[10px] text-slate-500">Restock inventory items</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => setIsCustomerReturnModalOpen(true)}
+                className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-slate-800 rounded-lg text-amber-500">
+                    <RotateCcw className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-white">Customer Return</p>
+                    <p className="text-[10px] text-slate-500">Refund or exchange items</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-slate-400" />
+              <h2 className="text-lg font-bold text-white">Recent Activity</h2>
+            </div>
+            
+            <button className="w-full py-4 bg-[#0B1120] border border-slate-800 hover:bg-[#1e293b] rounded-xl text-xs font-bold text-blue-500 tracking-wider uppercase transition-colors">
+              View All Transactions
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Recent Sales Table */}
-      <div className="bg-white rounded-xl border border-primary/10 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-primary/10 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-slate-900">Recent Sales</h3>
-          <button className="text-primary text-sm font-semibold hover:underline">View All Sales</button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Order ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-primary/5">
-              {[
-                { id: '#ORD-8821', customer: 'Rahul Sharma', product: 'Sony Bravia 55" LED TV', date: 'Oct 24, 2023', amount: '₹54,999', status: 'Completed' },
-                { id: '#ORD-8820', customer: 'Anita Desai', product: 'LG Front Load Washer', date: 'Oct 24, 2023', amount: '₹32,500', status: 'Processing' },
-                { id: '#ORD-8819', customer: 'Vikram Singh', product: 'Samsung Side-by-Side Fridge', date: 'Oct 23, 2023', amount: '₹89,000', status: 'Completed' },
-                { id: '#ORD-8818', customer: 'Priya Mehta', product: 'Daikin 1.5 Ton Split AC', date: 'Oct 23, 2023', amount: '₹42,200', status: 'Cancelled' },
-                { id: '#ORD-8817', customer: 'Sanjay Gupta', product: 'IFB Convection Microwave', date: 'Oct 22, 2023', amount: '₹15,400', status: 'Completed' },
-              ].map((row, i) => (
-                <tr key={i} className="hover:bg-primary/5 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium">{row.id}</td>
-                  <td className="px-6 py-4 text-sm">{row.customer}</td>
-                  <td className="px-6 py-4 text-sm">{row.product}</td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{row.date}</td>
-                  <td className="px-6 py-4 text-sm font-bold">{row.amount}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${
-                      row.status === 'Completed' ? 'bg-emerald-100 text-emerald-600' :
-                      row.status === 'Processing' ? 'bg-primary/10 text-primary' :
-                      'bg-red-100 text-red-600'
-                    }`}>
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Modals */}
+      <NewSaleModal 
+        isOpen={isNewSaleModalOpen} 
+        onClose={() => setIsNewSaleModalOpen(false)} 
+      />
+      <NewQuoteModal 
+        isOpen={isNewQuoteModalOpen} 
+        onClose={() => setIsNewQuoteModalOpen(false)} 
+      />
+      <CreateLPOModal 
+        isOpen={isCreateLPOModalOpen} 
+        onClose={() => setIsCreateLPOModalOpen(false)} 
+      />
+      <LogDeliveryModal 
+        isOpen={isLogDeliveryModalOpen} 
+        onClose={() => setIsLogDeliveryModalOpen(false)} 
+      />
+      <CustomerReturnModal 
+        isOpen={isCustomerReturnModalOpen} 
+        onClose={() => setIsCustomerReturnModalOpen(false)} 
+      />
     </div>
   );
+}
+
+function TrendingUpIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  )
 }
