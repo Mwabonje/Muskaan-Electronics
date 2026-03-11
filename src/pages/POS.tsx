@@ -1,25 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, ArrowLeft, Plus, Minus, Trash2, CreditCard, Banknote, User, ScanLine } from 'lucide-react';
-
-const products = [
-  { id: 1, name: 'iPhone 15 Pro Max', price: 1199.00, stock: 45, category: 'Smartphones', image: 'https://picsum.photos/seed/iphone/200' },
-  { id: 2, name: 'Samsung QN90C Neo QLED', price: 1599.00, stock: 8, category: 'Televisions', image: 'https://picsum.photos/seed/tv/200' },
-  { id: 3, name: 'Sony WH-1000XM5', price: 349.99, stock: 12, category: 'Audio', image: 'https://picsum.photos/seed/headphones/200' },
-  { id: 4, name: 'MacBook Air M3 15"', price: 1299.00, stock: 22, category: 'Laptops', image: 'https://picsum.photos/seed/macbook/200' },
-  { id: 5, name: 'Dell XPS 13', price: 999.00, stock: 5, category: 'Laptops', image: 'https://picsum.photos/seed/dell/200' },
-  { id: 6, name: 'iPad Pro 12.9"', price: 1099.00, stock: 15, category: 'Tablets', image: 'https://picsum.photos/seed/ipad/200' },
-  { id: 7, name: 'Apple Watch Series 9', price: 399.00, stock: 30, category: 'Wearables', image: 'https://picsum.photos/seed/watch/200' },
-  { id: 8, name: 'Bose QuietComfort Ultra', price: 429.00, stock: 18, category: 'Audio', image: 'https://picsum.photos/seed/bose/200' },
-];
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Product } from '../db/db';
 
 export default function POS() {
-  const [cart, setCart] = useState<{ product: typeof products[0], quantity: number }[]>([]);
+  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
 
   const categories = ['All', 'Smartphones', 'Laptops', 'Televisions', 'Audio', 'Tablets', 'Wearables'];
 
-  const addToCart = (product: typeof products[0]) => {
+  const addToCart = (product: Product) => {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
       if (existing) {
@@ -43,7 +35,11 @@ export default function POS() {
     setCart(prev => prev.filter(item => item.product.id !== id));
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const parsePrice = (priceStr: string) => {
+    return parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+  };
+
+  const subtotal = cart.reduce((sum, item) => sum + (parsePrice(item.product.selling) * item.quantity), 0);
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + tax;
 
@@ -108,7 +104,7 @@ export default function POS() {
                 className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all group text-left flex flex-col"
               >
                 <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
+                  <img src={product.image || `https://picsum.photos/seed/${product.id}/200`} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" referrerPolicy="no-referrer" />
                   <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-slate-700 shadow-sm">
                     {product.stock} in stock
                   </div>
@@ -118,7 +114,7 @@ export default function POS() {
                     <p className="text-xs text-slate-500 mb-1">{product.category}</p>
                     <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-tight">{product.name}</h3>
                   </div>
-                  <p className="text-primary font-bold mt-3">${product.price.toFixed(2)}</p>
+                  <p className="text-primary font-bold mt-3">${parsePrice(product.selling).toFixed(2)}</p>
                 </div>
               </button>
             ))}
@@ -154,7 +150,7 @@ export default function POS() {
             <div className="space-y-4">
               {cart.map(item => (
                 <div key={item.product.id} className="flex gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100 group">
-                  <img src={item.product.image} alt={item.product.name} className="w-16 h-16 rounded-lg object-cover border border-slate-200 bg-white" referrerPolicy="no-referrer" />
+                  <img src={item.product.image || `https://picsum.photos/seed/${item.product.id}/200`} alt={item.product.name} className="w-16 h-16 rounded-lg object-cover border border-slate-200 bg-white" referrerPolicy="no-referrer" />
                   <div className="flex-1 flex flex-col justify-between">
                     <div className="flex justify-between items-start">
                       <h4 className="text-sm font-bold text-slate-900 line-clamp-2 pr-2">{item.product.name}</h4>
@@ -166,7 +162,7 @@ export default function POS() {
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-primary font-bold text-sm">${item.product.price.toFixed(2)}</p>
+                      <p className="text-primary font-bold text-sm">${parsePrice(item.product.selling).toFixed(2)}</p>
                       <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                         <button 
                           onClick={() => updateQuantity(item.product.id, -1)}

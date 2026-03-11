@@ -1,27 +1,11 @@
 import { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown } from 'lucide-react';
-
-type Role = 'Super Admin' | 'Manager' | 'Cashier';
-type Status = 'Active' | 'Inactive';
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: Role;
-  status: Status;
-  lastLogin: string;
-}
-
-const initialUsers: User[] = [
-  { id: 1, name: 'Admin User', email: 'admin@muskaan.com', role: 'Super Admin', status: 'Active', lastLogin: 'Just now' },
-  { id: 2, name: 'Rahul Sharma', email: 'rahul@muskaan.com', role: 'Manager', status: 'Active', lastLogin: '2 hours ago' },
-  { id: 3, name: 'Priya Mehta', email: 'priya@muskaan.com', role: 'Cashier', status: 'Active', lastLogin: 'Yesterday' },
-  { id: 4, name: 'Amit Kumar', email: 'amit@muskaan.com', role: 'Cashier', status: 'Inactive', lastLogin: '5 days ago' },
-];
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type User, type Role } from '../db/db';
 
 export default function Users() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -34,24 +18,23 @@ export default function Users() {
     password: ''
   });
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser: User = {
-      id: users.length + 1,
+    const newUser = {
       name: `${formData.firstName} ${formData.lastName}`,
       email: formData.email,
       role: formData.role,
-      status: 'Active',
+      status: 'Active' as const,
       lastLogin: 'Never'
     };
     
-    setUsers([...users, newUser]);
+    await db.users.add(newUser);
     setIsModalOpen(false);
     setFormData({ firstName: '', lastName: '', email: '', role: 'Cashier', password: '' });
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers(users.filter(user => user.id !== id));
+  const handleDeleteUser = async (id: number) => {
+    await db.users.delete(id);
   };
 
   const filteredUsers = users.filter(user => 
@@ -156,7 +139,7 @@ export default function Users() {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => user.id && handleDeleteUser(user.id)}
                         disabled={user.role === 'Super Admin'}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                       >

@@ -1,13 +1,9 @@
 import { Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Filter, ChevronDown } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 
 export default function Products() {
-  const products = [
-    { name: 'iPhone 15 Pro Max', brand: 'Apple', category: 'Smartphones', cost: '$999.00', selling: '$1,199.00', stock: 45, status: 'In Stock' },
-    { name: 'Samsung QN90C Neo QLED', brand: 'Samsung', category: 'Televisions', cost: '$1,200.00', selling: '$1,599.00', stock: 8, status: 'Low Stock' },
-    { name: 'Sony WH-1000XM5', brand: 'Sony', category: 'Audio', cost: '$250.00', selling: '$349.99', stock: 0, status: 'Out of Stock' },
-    { name: 'MacBook Air M3 15"', brand: 'Apple', category: 'Laptops', cost: '$1,050.00', selling: '$1,299.00', stock: 22, status: 'In Stock' },
-    { name: 'Dell XPS 13', brand: 'Dell', category: 'Laptops', cost: '$850.00', selling: '$999.00', stock: 5, status: 'Low Stock' },
-  ];
+  const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   return (
     <div className="p-8">
@@ -70,8 +66,8 @@ export default function Products() {
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5">
-              {products.map((product, i) => (
-                <tr key={i} className="hover:bg-primary/[0.02] transition-colors">
+              {products.map((product) => (
+                <tr key={product.id} className="hover:bg-primary/[0.02] transition-colors">
                   <td className="px-6 py-4 text-slate-900 text-sm font-medium">{product.name}</td>
                   <td className="px-6 py-4 text-slate-600 text-sm">{product.brand}</td>
                   <td className="px-6 py-4">
@@ -101,7 +97,10 @@ export default function Products() {
                       <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => product.id && db.products.delete(product.id)}
+                        className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

@@ -1,5 +1,7 @@
 import { Package, AlertTriangle, ShoppingCart, IndianRupee, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db/db';
 
 const data = [
   { name: 'MON', value: 4000 },
@@ -12,6 +14,9 @@ const data = [
 ];
 
 export default function Dashboard() {
+  const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
+  const lowStockCount = useLiveQuery(() => db.products.where('status').equals('Low Stock').count(), []) || 0;
+
   return (
     <div className="p-8 space-y-8">
       {/* KPI Cards */}
@@ -26,7 +31,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-slate-500 text-sm font-medium">Total Products</p>
-          <p className="text-2xl font-bold text-slate-900">1,240</p>
+          <p className="text-2xl font-bold text-slate-900">{productsCount}</p>
         </div>
         
         <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
@@ -39,7 +44,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-slate-500 text-sm font-medium">Products Low in Stock</p>
-          <p className="text-2xl font-bold text-slate-900">18</p>
+          <p className="text-2xl font-bold text-slate-900">{lowStockCount}</p>
         </div>
         
         <div className="bg-white p-6 rounded-xl border border-primary/10 shadow-sm hover:shadow-md transition-shadow">
