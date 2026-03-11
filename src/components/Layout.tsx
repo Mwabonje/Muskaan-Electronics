@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Bolt, 
   LayoutDashboard, 
@@ -25,6 +25,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role, setRole } = useAuth();
   
   const navItems = [
@@ -124,7 +125,9 @@ export default function Layout() {
               <p className="text-xs font-bold truncate">Current User</p>
               <p className="text-[10px] text-slate-500 truncate">{role}</p>
             </div>
-            <LogOut className="w-4 h-4 text-slate-400 cursor-pointer hover:text-primary" />
+            <button onClick={() => navigate('/login')} className="text-slate-400 hover:text-primary transition-colors" title="Logout">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
