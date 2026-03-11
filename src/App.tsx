@@ -27,15 +27,39 @@ function ProtectedRoute({ children, restrictedRoles = [] }: { children: React.Re
   return <>{children}</>;
 }
 
+// Ensure user is logged in
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background-light">Loading...</div>;
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/pos" element={<POS />} />
           
-          <Route path="/" element={<Layout />}>
+          <Route path="/pos" element={
+            <RequireAuth>
+              <POS />
+            </RequireAuth>
+          } />
+          
+          <Route path="/" element={
+            <RequireAuth>
+              <Layout />
+            </RequireAuth>
+          }>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<Products />} />

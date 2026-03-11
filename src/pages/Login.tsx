@@ -1,9 +1,51 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MonitorSmartphone, User, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MonitorSmartphone, User, Lock, LogIn, Eye, EyeOff, Users } from 'lucide-react';
+import { db } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('admin@muskaan.com');
+  const [password, setPassword] = useState('admin123');
+  const [error, setError] = useState('');
+  
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      // In a real app, you'd verify the password too.
+      // For this demo, we just check if the user exists by email.
+      const user = await db.users.where('email').equalsIgnoreCase(email).first();
+      
+      if (user) {
+        if (user.status === 'Inactive') {
+          setError('This account is inactive. Please contact an administrator.');
+          return;
+        }
+        
+        // Update last login
+        await db.users.update(user.id!, { lastLogin: 'Just now' });
+        
+        login(user);
+        navigate('/dashboard');
+      } else {
+        setError('Invalid email or password.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login.');
+    }
+  };
+
+  const fillDemoCredentials = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('password123');
+  };
 
   return (
     <div className="bg-background-light min-h-screen flex items-center justify-center p-4 font-display text-slate-900 relative">
@@ -22,18 +64,25 @@ export default function Login() {
             <p className="text-slate-500 mt-2">Welcome back! Please login to your account.</p>
           </div>
           
-          <div className="px-8 pb-10">
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <div className="px-8 pb-6">
+            <form className="space-y-5" onSubmit={handleLogin}>
+              {error && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-medium">
+                  {error}
+                </div>
+              )}
+              
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="username">Email or Username</label>
+                <label className="text-sm font-medium text-slate-700" htmlFor="username">Email</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                   <input 
-                    type="text" 
+                    type="email" 
                     id="username" 
                     name="username" 
                     placeholder="Enter your email" 
-                    defaultValue="admin@muskaan.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required 
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 placeholder:text-slate-400"
                   />
@@ -52,7 +101,8 @@ export default function Login() {
                     id="password" 
                     name="password" 
                     placeholder="••••••••" 
-                    defaultValue="admin123"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required 
                     className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 placeholder:text-slate-400"
                   />
@@ -71,11 +121,43 @@ export default function Login() {
                 <label htmlFor="remember" className="text-sm text-slate-600">Remember me for 30 days</label>
               </div>
               
-              <Link to="/dashboard" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+              <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
                 <span>Login to Account</span>
                 <LogIn className="w-4 h-4" />
-              </Link>
+              </button>
             </form>
+          </div>
+          
+          <div className="px-8 pb-8">
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-slate-200"></div>
+              <span className="flex-shrink-0 mx-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Demo Accounts</span>
+              <div className="flex-grow border-t border-slate-200"></div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <button 
+                type="button"
+                onClick={() => fillDemoCredentials('admin@muskaan.com')}
+                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
+              >
+                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Admin</span>
+              </button>
+              <button 
+                type="button"
+                onClick={() => fillDemoCredentials('rahul@muskaan.com')}
+                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
+              >
+                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Manager</span>
+              </button>
+              <button 
+                type="button"
+                onClick={() => fillDemoCredentials('priya@muskaan.com')}
+                className="flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 hover:border-primary hover:bg-primary/5 transition-colors group"
+              >
+                <span className="text-xs font-bold text-slate-700 group-hover:text-primary">Cashier</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

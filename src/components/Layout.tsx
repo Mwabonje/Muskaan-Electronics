@@ -26,7 +26,7 @@ export function cn(...inputs: ClassValue[]) {
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, setRole } = useAuth();
+  const { user, role, logout, isLoading } = useAuth();
   
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -44,6 +44,11 @@ export default function Layout() {
 
   const filteredNavItems = navItems.filter(item => !item.hideFor?.includes(role));
   const filteredSystemItems = systemItems.filter(item => !item.hideFor?.includes(role));
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="flex min-h-screen bg-background-light text-slate-900 font-display">
@@ -101,14 +106,14 @@ export default function Layout() {
         
         <div className="p-4 mt-auto border-t border-primary/10">
           <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-100">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-              <UserCog className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+              {user?.name ? user.name.charAt(0).toUpperCase() : <UserCog className="w-4 h-4" />}
             </div>
             <div className="overflow-hidden flex-1">
-              <p className="text-xs font-bold truncate">Current User</p>
+              <p className="text-xs font-bold truncate">{user?.name || 'Guest'}</p>
               <p className="text-[10px] text-slate-500 truncate">{role}</p>
             </div>
-            <button onClick={() => navigate('/login')} className="text-slate-400 hover:text-primary transition-colors" title="Logout">
+            <button onClick={handleLogout} className="text-slate-400 hover:text-primary transition-colors" title="Logout">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
