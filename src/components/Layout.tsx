@@ -100,23 +100,6 @@ export default function Layout() {
         </nav>
         
         <div className="p-4 mt-auto border-t border-primary/10">
-          {/* Role Switcher for Testing */}
-          <div className="mb-3 p-2 border border-slate-200 rounded-lg bg-slate-50">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase font-bold text-slate-500">Test Role</span>
-              <Shield className="w-3 h-3 text-slate-400" />
-            </div>
-            <select 
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="w-full text-xs p-1.5 rounded border border-slate-200 bg-white outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="Super Admin">Super Admin</option>
-              <option value="Manager">Manager</option>
-              <option value="Cashier">Cashier</option>
-            </select>
-          </div>
-
           <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-100">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
               <UserCog className="w-4 h-4" />
