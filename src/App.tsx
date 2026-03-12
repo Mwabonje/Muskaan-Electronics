@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
@@ -19,6 +20,7 @@ import Deliveries from './pages/Deliveries';
 import CustomerReturns from './pages/CustomerReturns';
 import Messages from './pages/Messages';
 import Quotes from './pages/Quotes';
+import SystemLocked from './components/SystemLocked';
 
 // A simple wrapper to protect routes based on role
 function ProtectedRoute({ children, restrictedRoles = [] }: { children: React.ReactNode, restrictedRoles?: string[] }) {
@@ -33,7 +35,24 @@ function ProtectedRoute({ children, restrictedRoles = [] }: { children: React.Re
 
 // Ensure user is logged in
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, role, isLoading } = useAuth();
+  const [isLocked, setIsLocked] = useState(localStorage.getItem('system_locked') === 'true');
+  
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setIsLocked(localStorage.getItem('system_locked') === 'true');
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    // Also check periodically in case it was changed in the same window (though React state usually handles that, 
+    // but since we use localStorage directly in Settings, we need to dispatch an event or poll)
+    const interval = setInterval(handleStorageChange, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
   
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background-light">Loading...</div>;
@@ -41,6 +60,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  
+  if (isLocked && role !== 'Super Admin') {
+    return <SystemLocked />;
   }
   
   return <>{children}</>;

@@ -31,6 +31,12 @@ export default function Login() {
           return;
         }
         
+        const isLocked = localStorage.getItem('system_locked') === 'true';
+        if (isLocked && user.role !== 'Super Admin') {
+          setError('System is currently locked for maintenance. Please contact an administrator.');
+          return;
+        }
+        
         // Update last login
         await db.users.update(user.id!, { lastLogin: 'Just now' });
         
