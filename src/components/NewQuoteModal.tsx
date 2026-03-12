@@ -12,7 +12,8 @@ import {
   Shield
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, Quote } from '../db/db';
+import ViewQuoteModal from './ViewQuoteModal';
 
 interface CartItem {
   id: string;
@@ -37,6 +38,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   const [discountValue, setDiscountValue] = useState<number | ''>(0);
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
+  const [generatedQuote, setGeneratedQuote] = useState<Quote | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
       setDiscountValue(0);
       setCustomerName('');
       setNotes('');
+      setGeneratedQuote(null);
     }
   }, [isOpen]);
 
@@ -115,7 +118,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
 
     try {
       // Create quote record
-      await db.quotes.add({
+      const newQuote: Quote = {
         items: validItems.map(item => {
           const product = products.find(p => p.id === Number(item.productId));
           return {
@@ -131,13 +134,26 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
         customerName: customerName || undefined,
         notes: notes || undefined,
         status: 'Pending'
-      });
+      };
+      
+      const id = await db.quotes.add(newQuote);
+      newQuote.id = id as number;
 
-      onClose();
+      setGeneratedQuote(newQuote);
     } catch (error) {
       console.error("Failed to generate quote:", error);
       alert("Failed to generate quote. Please try again.");
     }
+  };
+
+  if (generatedQuote) {
+    return <ViewQuoteModal isOpen={true} onClose={onClose} quote={generatedQuote} />;
+  }
+
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -199,7 +215,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Ksh {p.selling}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Ksh {formatPrice(p.selling)}</option>
                         ))}
                       </select>
                     </div>

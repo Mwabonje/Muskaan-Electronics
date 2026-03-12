@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  DollarSign, 
+  Banknote, 
   ShoppingBag, 
   PieChart, 
   AlertTriangle,
@@ -35,6 +35,12 @@ export default function Dashboard() {
   const lowStockCount = useLiveQuery(() => db.products.where('status').equals('Low Stock').count(), []) || 0;
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-[#0f172a] min-h-full text-slate-300">
       {/* KPI Cards */}
@@ -43,7 +49,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Total Inventory Value</p>
             <div className="p-1.5 bg-blue-900/30 rounded-lg text-blue-500">
-              <DollarSign className="w-4 h-4" />
+              <Banknote className="w-4 h-4" />
             </div>
           </div>
           <div>
@@ -126,12 +132,12 @@ export default function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-800">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item Name</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Stock Level</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unit</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Price</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Item Name</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Category</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Stock Level</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Unit</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">Price</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -148,8 +154,8 @@ export default function Dashboard() {
                         <td className="px-6 py-4 text-sm text-slate-400">{product.category}</td>
                         <td className="px-6 py-4 text-sm text-slate-400">{product.stock}</td>
                         <td className="px-6 py-4 text-sm text-slate-400">Pcs</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full whitespace-nowrap ${
                             product.status === 'In Stock' ? 'bg-emerald-500/10 text-emerald-500' :
                             product.status === 'Low Stock' ? 'bg-amber-500/10 text-amber-500' :
                             'bg-rose-500/10 text-rose-500'
@@ -157,7 +163,7 @@ export default function Dashboard() {
                             {product.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300 text-right">Ksh {product.selling}</td>
+                        <td className="px-6 py-4 text-sm text-slate-300 text-right whitespace-nowrap">{formatPrice(product.selling)}</td>
                       </tr>
                     ))
                   )}

@@ -98,7 +98,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
 
     try {
       // Create Delivery record
-      await db.deliveries.add({
+      const deliveryId = await db.deliveries.add({
         items: validItems.map(item => {
           const product = products.find(p => p.id === Number(item.productId));
           return {
@@ -119,9 +119,20 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       for (const item of validItems) {
         const product = products.find(p => p.id === Number(item.productId));
         if (product) {
-          const newStock = product.stock + Number(item.quantity);
+          const qty = Number(item.quantity);
+          const newStock = product.stock + qty;
           const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.minStock || 5) ? 'Low Stock' : 'In Stock';
           await db.products.update(product.id!, { stock: newStock, status });
+          
+          await db.stockHistory.add({
+            productId: product.id!,
+            changeType: 'Addition',
+            quantityChange: qty,
+            previousStock: product.stock,
+            newStock: newStock,
+            date: new Date().toISOString(),
+            reason: `Delivery #${deliveryId} from ${supplierName}`
+          });
         }
       }
 

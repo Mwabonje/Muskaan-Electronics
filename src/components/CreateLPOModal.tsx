@@ -136,6 +136,12 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
     }
   };
 
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}></div>
@@ -222,7 +228,7 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Cost: Ksh {p.cost}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Cost: Ksh {formatPrice(p.cost)}</option>
                         ))}
                       </select>
                     </div>

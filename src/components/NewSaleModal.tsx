@@ -77,7 +77,8 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
         if (field === 'productId' && value !== '') {
           const product = products.find(p => p.id === Number(value));
           if (product) {
-            updatedItem.price = product.selling;
+            const priceString = String(product.selling).replace(/[^0-9.-]+/g,"");
+            updatedItem.price = Number(priceString);
           }
         }
         return updatedItem;
@@ -121,7 +122,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
 
     try {
       // Create sale record
-      await db.sales.add({
+      const saleId = await db.sales.add({
         items: validItems.map(item => {
           const product = products.find(p => p.id === Number(item.productId));
           return {
@@ -143,9 +144,20 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
       for (const item of validItems) {
         const product = products.find(p => p.id === Number(item.productId));
         if (product) {
-          const newStock = Math.max(0, product.stock - Number(item.quantity));
+          const qty = Number(item.quantity);
+          const newStock = Math.max(0, product.stock - qty);
           const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.minStock || 5) ? 'Low Stock' : 'In Stock';
           await db.products.update(product.id!, { stock: newStock, status });
+          
+          await db.stockHistory.add({
+            productId: product.id!,
+            changeType: 'Sale',
+            quantityChange: qty,
+            previousStock: product.stock,
+            newStock: newStock,
+            date: new Date().toISOString(),
+            reason: `Sale #${saleId}`
+          });
         }
       }
 
@@ -154,6 +166,12 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
       console.error("Failed to record sale:", error);
       alert("Failed to record sale. Please try again.");
     }
+  };
+
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -215,7 +233,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Ksh {p.selling}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Ksh {formatPrice(p.selling)}</option>
                         ))}
                       </select>
                     </div>

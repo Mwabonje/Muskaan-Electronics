@@ -86,6 +86,18 @@ export interface Return {
   condition: 'Good' | 'Damaged';
 }
 
+export interface StockHistory {
+  id?: number;
+  productId: number;
+  changeType: 'Addition' | 'Deduction' | 'Adjustment' | 'Sale' | 'Return';
+  quantityChange: number;
+  previousStock: number;
+  newStock: number;
+  date: string;
+  reason?: string;
+  userId?: number;
+}
+
 const db = new Dexie('MuskaanDB') as Dexie & {
   users: EntityTable<User, 'id'>;
   products: EntityTable<Product, 'id'>;
@@ -94,17 +106,19 @@ const db = new Dexie('MuskaanDB') as Dexie & {
   purchaseOrders: EntityTable<PurchaseOrder, 'id'>;
   deliveries: EntityTable<Delivery, 'id'>;
   returns: EntityTable<Return, 'id'>;
+  stockHistory: EntityTable<StockHistory, 'id'>;
 };
 
 // Schema declaration
-db.version(4).stores({
+db.version(5).stores({
   users: '++id, name, email, role, status',
   products: '++id, name, brand, category, status',
   sales: '++id, date, customerName, paymentMethod',
   quotes: '++id, date, customerName, status',
   purchaseOrders: '++id, date, supplierName, status',
   deliveries: '++id, date, supplierName, purchaseOrderId',
-  returns: '++id, date, customerName, saleId'
+  returns: '++id, date, customerName, saleId',
+  stockHistory: '++id, productId, date, changeType'
 }).upgrade(tx => {
   return tx.table('users').toCollection().modify(user => {
     if (!user.password) {
@@ -123,11 +137,11 @@ db.on('populate', () => {
   ]);
   
   db.products.bulkAdd([
-    { name: 'iPhone 15 Pro Max', brand: 'Apple', category: 'Smartphones', cost: '$999.00', selling: '$1,199.00', stock: 45, status: 'In Stock', image: 'https://picsum.photos/seed/iphone/200' },
-    { name: 'Samsung QN90C Neo QLED', brand: 'Samsung', category: 'Televisions', cost: '$1,200.00', selling: '$1,599.00', stock: 8, status: 'Low Stock', image: 'https://picsum.photos/seed/tv/200' },
-    { name: 'Sony WH-1000XM5', brand: 'Sony', category: 'Audio', cost: '$250.00', selling: '$349.99', stock: 0, status: 'Out of Stock', image: 'https://picsum.photos/seed/headphones/200' },
-    { name: 'MacBook Air M3 15"', brand: 'Apple', category: 'Laptops', cost: '$1,050.00', selling: '$1,299.00', stock: 22, status: 'In Stock', image: 'https://picsum.photos/seed/macbook/200' },
-    { name: 'Dell XPS 13', brand: 'Dell', category: 'Laptops', cost: '$850.00', selling: '$999.00', stock: 5, status: 'Low Stock', image: 'https://picsum.photos/seed/dell/200' },
+    { name: 'iPhone 15 Pro Max', brand: 'Apple', category: 'Smartphones', cost: 'Ksh 999.00', selling: 'Ksh 1,199.00', stock: 45, status: 'In Stock', image: 'https://picsum.photos/seed/iphone/200' },
+    { name: 'Samsung QN90C Neo QLED', brand: 'Samsung', category: 'Televisions', cost: 'Ksh 1,200.00', selling: 'Ksh 1,599.00', stock: 8, status: 'Low Stock', image: 'https://picsum.photos/seed/tv/200' },
+    { name: 'Sony WH-1000XM5', brand: 'Sony', category: 'Audio', cost: 'Ksh 250.00', selling: 'Ksh 349.99', stock: 0, status: 'Out of Stock', image: 'https://picsum.photos/seed/headphones/200' },
+    { name: 'MacBook Air M3 15"', brand: 'Apple', category: 'Laptops', cost: 'Ksh 1,050.00', selling: 'Ksh 1,299.00', stock: 22, status: 'In Stock', image: 'https://picsum.photos/seed/macbook/200' },
+    { name: 'Dell XPS 13', brand: 'Dell', category: 'Laptops', cost: 'Ksh 850.00', selling: 'Ksh 999.00', stock: 5, status: 'Low Stock', image: 'https://picsum.photos/seed/dell/200' },
   ]);
 });
 

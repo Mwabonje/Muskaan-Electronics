@@ -36,7 +36,8 @@ export default function POS() {
     setCart(prev => prev.filter(item => item.product.id !== id));
   };
 
-  const parsePrice = (priceStr: string) => {
+  const parsePrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return priceStr;
     return parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
   };
 
@@ -120,7 +121,7 @@ export default function POS() {
                     <p className="text-xs text-slate-500 mb-1">{product.category}</p>
                     <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-tight">{product.name}</h3>
                   </div>
-                  <p className="text-primary font-bold mt-3">${parsePrice(product.selling).toFixed(2)}</p>
+                  <p className="text-primary font-bold mt-3">Ksh {parsePrice(product.selling).toFixed(2)}</p>
                 </div>
               </button>
             ))}
@@ -155,7 +156,7 @@ export default function POS() {
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-primary font-bold text-sm">${parsePrice(item.product.selling).toFixed(2)}</p>
+                      <p className="text-primary font-bold text-sm">Ksh {parsePrice(item.product.selling).toFixed(2)}</p>
                       <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                         <button 
                           onClick={() => updateQuantity(item.product.id, -1)}
@@ -184,19 +185,19 @@ export default function POS() {
           <div className="space-y-3 mb-6">
             <div className="flex justify-between text-sm text-slate-500">
               <span>Subtotal</span>
-              <span className="font-medium text-slate-900">${subtotal.toFixed(2)}</span>
+              <span className="font-medium text-slate-900">Ksh {subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-slate-500">
               <span>Tax (18%)</span>
-              <span className="font-medium text-slate-900">${tax.toFixed(2)}</span>
+              <span className="font-medium text-slate-900">Ksh {tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-sm text-slate-500">
               <span>Discount</span>
-              <span className="font-medium text-emerald-500">-$0.00</span>
+              <span className="font-medium text-emerald-500">-Ksh 0.00</span>
             </div>
             <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
               <span className="text-lg font-bold text-slate-900">Total</span>
-              <span className="text-2xl font-black text-primary">${total.toFixed(2)}</span>
+              <span className="text-2xl font-black text-primary">Ksh {total.toFixed(2)}</span>
             </div>
           </div>
 
@@ -221,7 +222,7 @@ export default function POS() {
             disabled={cart.length === 0}
             className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
           >
-            Pay ${total.toFixed(2)}
+            Pay Ksh {total.toFixed(2)}
           </button>
         </div>
       </div>

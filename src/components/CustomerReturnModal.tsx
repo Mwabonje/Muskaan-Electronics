@@ -115,7 +115,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
 
     try {
       // Create Return record
-      await db.returns.add({
+      const returnId = await db.returns.add({
         items: validItems.map(item => {
           const product = products.find(p => p.id === Number(item.productId));
           return {
@@ -138,9 +138,20 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
         for (const item of validItems) {
           const product = products.find(p => p.id === Number(item.productId));
           if (product) {
-            const newStock = product.stock + Number(item.quantity);
+            const qty = Number(item.quantity);
+            const newStock = product.stock + qty;
             const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.minStock || 5) ? 'Low Stock' : 'In Stock';
             await db.products.update(product.id!, { stock: newStock, status });
+            
+            await db.stockHistory.add({
+              productId: product.id!,
+              changeType: 'Return',
+              quantityChange: qty,
+              previousStock: product.stock,
+              newStock: newStock,
+              date: new Date().toISOString(),
+              reason: `Return #${returnId}`
+            });
           }
         }
       }
@@ -150,6 +161,12 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
       console.error("Failed to process return:", error);
       alert("Failed to process return. Please try again.");
     }
+  };
+
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   return (
@@ -254,7 +271,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Sold at Ksh {p.selling}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Sold at Ksh {formatPrice(p.selling)}</option>
                         ))}
                       </select>
                     </div>

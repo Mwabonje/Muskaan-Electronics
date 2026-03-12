@@ -1,9 +1,26 @@
-import { Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Filter, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Filter, ChevronDown, History } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, Product } from '../db/db';
+import ProductDetailsModal from '../components/ProductDetailsModal';
 
 export default function Products() {
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<'details' | 'history'>('details');
+
+  const handleOpenModal = (product: Product | null = null, tab: 'details' | 'history' = 'details') => {
+    setSelectedProduct(product);
+    setInitialTab(tab);
+    setIsModalOpen(true);
+  };
+
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
     <div className="p-4 sm:p-8">
@@ -13,7 +30,10 @@ export default function Products() {
           <p className="text-slate-500 text-base font-normal">Real-time control over your global stock and pricing.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20">
+          <button 
+            onClick={() => handleOpenModal()}
+            className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20"
+          >
             <Plus className="w-4 h-4 mr-2" />
             <span>Add Product</span>
           </button>
@@ -55,14 +75,14 @@ export default function Products() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-primary/10">
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Product Name</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Brand</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Cost</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Selling</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Product Name</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Brand</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Category</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Cost</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Selling</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Stock</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5">
@@ -75,11 +95,11 @@ export default function Products() {
                       {product.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 text-sm font-mono">{product.cost}</td>
-                  <td className="px-6 py-4 text-slate-600 text-sm font-mono">{product.selling}</td>
+                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.cost)}</td>
+                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.selling)}</td>
                   <td className="px-6 py-4 text-slate-600 text-sm font-semibold">{product.stock}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${
                       product.status === 'In Stock' ? 'bg-green-100 text-green-700' :
                       product.status === 'Low Stock' ? 'bg-amber-100 text-amber-700' :
                       'bg-slate-100 text-slate-500'
@@ -94,12 +114,24 @@ export default function Products() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleOpenModal(product, 'history')}
+                        className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+                        title="Stock History"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleOpenModal(product)}
+                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Edit Product"
+                      >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => product.id && db.products.delete(product.id)}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                        title="Delete Product"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -128,6 +160,13 @@ export default function Products() {
           </div>
         </div>
       </div>
+
+      <ProductDetailsModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        product={selectedProduct} 
+        initialTab={initialTab}
+      />
     </div>
   );
 }
