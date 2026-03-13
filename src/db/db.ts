@@ -38,6 +38,8 @@ export interface Sale {
   id?: number;
   items: SaleItem[];
   totalAmount: number;
+  subtotal: number;
+  discount: number;
   paymentMethod: string;
   date: string;
   customerName?: string;
@@ -79,7 +81,7 @@ export interface Delivery {
 
 export interface Return {
   id?: number;
-  saleId?: number;
+  originalSaleId?: number;
   items: SaleItem[];
   totalRefund: number;
   customerName: string;
@@ -87,6 +89,8 @@ export interface Return {
   reason: string;
   condition: 'Good' | 'Damaged';
 }
+
+export type CustomerReturn = Return;
 
 export interface StockHistory {
   id?: number;

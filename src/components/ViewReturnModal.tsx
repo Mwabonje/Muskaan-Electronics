@@ -89,6 +89,12 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
                   <Calendar className="w-4 h-4 text-slate-400" />
                   Date: {new Date(customerReturn.date).toLocaleDateString()}
                 </div>
+                <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
+                  <span className="text-slate-500">Condition:</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                    customerReturn.condition === 'Good' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  }`}>{customerReturn.condition}</span>
+                </div>
                 {customerReturn.originalSaleId && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                     <span className="text-slate-500">Original Sale #:</span> S-{customerReturn.originalSaleId.toString().padStart(4, '0')}
@@ -105,24 +111,16 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
                 <tr className="border-b-2 border-slate-200">
                   <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Item Description</th>
                   <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Qty</th>
-                  <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Condition</th>
                   <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Refund Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {customerReturn.items.map((item, index) => {
-                  const refundAmount = parseFloat(item.refundAmount.toString().replace(/[^0-9.-]+/g, '')) || 0;
+                  const refundAmount = Number(item.price) || 0;
                   return (
                     <tr key={index} className="group hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-4 text-sm font-medium text-slate-800">{item.name}</td>
                       <td className="py-4 px-4 text-sm text-slate-600 text-center">{item.quantity}</td>
-                      <td className="py-4 px-4 text-sm text-slate-600 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          item.condition === 'Good' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {item.condition}
-                        </span>
-                      </td>
                       <td className="py-4 px-4 text-sm font-bold text-slate-800 text-right">{formatPrice(refundAmount)}</td>
                     </tr>
                   );
@@ -130,7 +128,7 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
-                  <td colSpan={3} className="py-4 px-4 text-sm font-bold text-slate-800 text-right uppercase tracking-wider">Total Refund</td>
+                  <td colSpan={2} className="py-4 px-4 text-sm font-bold text-slate-800 text-right uppercase tracking-wider">Total Refund</td>
                   <td className="py-4 px-4 text-lg font-black text-blue-600 text-right">{formatPrice(customerReturn.totalRefund)}</td>
                 </tr>
               </tfoot>

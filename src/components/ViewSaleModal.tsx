@@ -15,7 +15,8 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
     window.print();
   };
 
-  const formatPrice = (priceStr: string | number) => {
+  const formatPrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr === undefined || priceStr === null) return `Ksh 0.00`;
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
