@@ -90,10 +90,10 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="py-2 text-left font-bold text-slate-600">Item</th>
-                  <th className="py-2 text-center font-bold text-slate-600">Qty</th>
-                  <th className="py-2 text-right font-bold text-slate-600">Price</th>
-                  <th className="py-2 text-right font-bold text-slate-600">Total</th>
+                  <th className="py-3 text-left font-bold text-slate-600">Item</th>
+                  <th className="py-3 text-center font-bold text-slate-600 px-4">Qty</th>
+                  <th className="py-3 text-right font-bold text-slate-600 pl-4">Price</th>
+                  <th className="py-3 text-right font-bold text-slate-600 pl-4">Total</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -101,10 +101,10 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
                   const total = item.quantity * item.price;
                   return (
                     <tr key={index}>
-                      <td className="py-2 text-left">{item.name}</td>
-                      <td className="py-2 text-center">{item.quantity}</td>
-                      <td className="py-2 text-right">{formatPrice(item.price)}</td>
-                      <td className="py-2 text-right">{formatPrice(total)}</td>
+                      <td className="py-3 text-left">{item.name}</td>
+                      <td className="py-3 text-center px-4">{item.quantity}</td>
+                      <td className="py-3 text-right pl-4 whitespace-nowrap">{formatPrice(item.price)}</td>
+                      <td className="py-3 text-right pl-4 whitespace-nowrap">{formatPrice(total)}</td>
                     </tr>
                   );
                 })}

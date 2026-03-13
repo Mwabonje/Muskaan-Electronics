@@ -247,10 +247,10 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
             <table className="w-full mb-6">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
-                  <th className="text-center py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Qty</th>
-                  <th className="text-right py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
-                  <th className="text-right py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
+                  <th className="text-left py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
+                  <th className="text-center py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Qty</th>
+                  <th className="text-right py-3 pl-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
+                  <th className="text-right py-3 pl-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
@@ -261,9 +261,9 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
                   return (
                     <tr key={item.id} className="border-b border-slate-100">
                       <td className="py-3 font-medium">{product?.name || 'Unknown Item'}</td>
-                      <td className="py-3 text-center">{qty}</td>
-                      <td className="py-3 text-right">{price.toLocaleString()}</td>
-                      <td className="py-3 text-right font-bold">{((price * qty)).toLocaleString()}</td>
+                      <td className="py-3 px-4 text-center">{qty}</td>
+                      <td className="py-3 pl-4 text-right whitespace-nowrap">{price.toLocaleString()}</td>
+                      <td className="py-3 pl-4 text-right font-bold whitespace-nowrap">{((price * qty)).toLocaleString()}</td>
                     </tr>
                   );
                 })}

@@ -334,10 +334,10 @@ export default function POS() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr>
-                      <th className="py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
-                      <th className="py-2 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Qty</th>
-                      <th className="py-2 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Price</th>
-                      <th className="py-2 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total</th>
+                      <th className="py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
+                      <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Qty</th>
+                      <th className="py-3 pl-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Price</th>
+                      <th className="py-3 pl-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -345,10 +345,10 @@ export default function POS() {
                       const price = parsePrice(item.product.selling);
                       return (
                         <tr key={item.product.id}>
-                          <td className="py-2 text-sm font-medium text-slate-800">{item.product.name}</td>
-                          <td className="py-2 text-sm text-slate-600 text-center">{item.quantity}</td>
-                          <td className="py-2 text-sm text-slate-600 text-right">{price.toLocaleString()}</td>
-                          <td className="py-2 text-sm font-bold text-slate-800 text-right">{(price * item.quantity).toLocaleString()}</td>
+                          <td className="py-3 text-sm font-medium text-slate-800">{item.product.name}</td>
+                          <td className="py-3 px-4 text-sm text-slate-600 text-center">{item.quantity}</td>
+                          <td className="py-3 pl-4 text-sm text-slate-600 text-right whitespace-nowrap">{price.toLocaleString()}</td>
+                          <td className="py-3 pl-4 text-sm font-bold text-slate-800 text-right whitespace-nowrap">{(price * item.quantity).toLocaleString()}</td>
                         </tr>
                       );
                     })}
