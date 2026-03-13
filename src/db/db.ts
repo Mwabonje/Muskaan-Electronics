@@ -44,6 +44,7 @@ export interface Sale {
   date: string;
   customerName?: string;
   notes?: string;
+  transactionCode?: string;
 }
 
 export interface Quote {

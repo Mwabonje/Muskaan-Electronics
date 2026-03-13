@@ -81,7 +81,12 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Payment:</span>
-              <span className="font-medium">{sale.paymentMethod}</span>
+              <span className="font-medium">
+                {sale.paymentMethod}
+                {sale.paymentMethod === 'Mpesa' && sale.transactionCode && (
+                  <span className="ml-1 text-slate-400">({sale.transactionCode})</span>
+                )}
+              </span>
             </div>
           </div>
 

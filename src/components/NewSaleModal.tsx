@@ -43,7 +43,8 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
   const [discountValue, setDiscountValue] = useState<number | ''>(0);
   const [customerName, setCustomerName] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'M-Pesa'>('Cash');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Mpesa'>('Cash');
+  const [transactionCode, setTransactionCode] = useState('');
   const [notes, setNotes] = useState('');
 
   const [step, setStep] = useState<'form' | 'preview'>('form');
@@ -62,6 +63,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
       setDiscountValue(0);
       setCustomerName('');
       setPaymentMethod('Cash');
+      setTransactionCode('');
       setNotes('');
     }
   }, [isOpen]);
@@ -148,6 +150,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
         }),
         totalAmount: grandTotal,
         paymentMethod,
+        transactionCode: paymentMethod === 'Mpesa' ? transactionCode : undefined,
         date: new Date().toISOString(),
         customerName: customerName || undefined,
         notes: notes || undefined
@@ -288,7 +291,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
             </div>
 
             <div className="text-center text-sm text-slate-500 space-y-1">
-              <p>Payment Method: <span className="font-bold text-slate-700">{paymentMethod}</span></p>
+              <p>Payment Method: <span className="font-bold text-slate-700">{paymentMethod === 'Mpesa' ? `MPESA (${transactionCode})` : 'CASH'}</span></p>
               <p>Thank you for your business!</p>
             </div>
           </div>
@@ -494,7 +497,10 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
             </label>
             <div className="flex gap-3">
               <button 
-                onClick={() => setPaymentMethod('Cash')}
+                onClick={() => {
+                  setPaymentMethod('Cash');
+                  setTransactionCode('');
+                }}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-colors ${
                   paymentMethod === 'Cash' 
                     ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
@@ -504,9 +510,9 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
                 <Banknote className="w-4 h-4" /> Cash
               </button>
               <button 
-                onClick={() => setPaymentMethod('M-Pesa')}
+                onClick={() => setPaymentMethod('Mpesa')}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-colors ${
-                  paymentMethod === 'M-Pesa' 
+                  paymentMethod === 'Mpesa' 
                     ? 'bg-[#1e293b] text-white border border-slate-600 shadow-sm' 
                     : 'bg-[#1e293b] text-slate-400 border border-slate-700 hover:bg-slate-800'
                 }`}
@@ -515,6 +521,21 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
               </button>
             </div>
           </div>
+
+          {paymentMethod === 'Mpesa' && (
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-3 h-3" /> Mpesa Transaction Code <span className="text-rose-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                value={transactionCode}
+                onChange={(e) => setTransactionCode(e.target.value.toUpperCase())}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono"
+                placeholder="PROCEED TO PAY & ENTER CODE"
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1.5">

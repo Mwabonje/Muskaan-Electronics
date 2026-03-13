@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, ArrowLeft, Plus, Minus, Trash2, CreditCard, Banknote, User, ScanLine, X, Printer, FileText } from 'lucide-react';
+import { Search, ShoppingCart, ArrowLeft, Plus, Minus, Trash2, CreditCard, Banknote, User, ScanLine, X, Printer, FileText, Shield } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../db/db';
 
@@ -10,7 +10,8 @@ export default function POS() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   
-  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Card'>('Cash');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Mpesa'>('Cash');
+  const [transactionCode, setTransactionCode] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
   const [createdSaleId, setCreatedSaleId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export default function POS() {
         })),
         totalAmount: total,
         paymentMethod: paymentMethod,
+        transactionCode: paymentMethod === 'Mpesa' ? transactionCode : undefined,
         customerName: 'Walk-in Customer',
         date: new Date().toISOString()
       });
@@ -111,6 +113,7 @@ export default function POS() {
     setShowReceipt(false);
     setCart([]);
     setCreatedSaleId(null);
+    setTransactionCode('');
     setError(null);
   };
 
@@ -273,10 +276,26 @@ export default function POS() {
             </div>
           </div>
 
+          {paymentMethod === 'Mpesa' && (
+            <div className="mb-4 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mpesa Transaction Code</label>
+              <input 
+                type="text" 
+                value={transactionCode}
+                onChange={(e) => setTransactionCode(e.target.value.toUpperCase())}
+                placeholder="PROCEED TO PAY & ENTER CODE"
+                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-primary outline-none transition-all placeholder:text-slate-300"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <button 
               disabled={cart.length === 0}
-              onClick={() => setPaymentMethod('Cash')}
+              onClick={() => {
+                setPaymentMethod('Cash');
+                setTransactionCode('');
+              }}
               className={`flex items-center justify-center gap-2 py-3 bg-white border rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                 paymentMethod === 'Cash' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-700 hover:border-primary hover:text-primary'
               }`}
@@ -286,13 +305,13 @@ export default function POS() {
             </button>
             <button 
               disabled={cart.length === 0}
-              onClick={() => setPaymentMethod('Card')}
+              onClick={() => setPaymentMethod('Mpesa')}
               className={`flex items-center justify-center gap-2 py-3 bg-white border rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
-                paymentMethod === 'Card' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-700 hover:border-primary hover:text-primary'
+                paymentMethod === 'Mpesa' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 text-slate-700 hover:border-primary hover:text-primary'
               }`}
             >
               <CreditCard className="w-5 h-5" />
-              Card
+              Mpesa
             </button>
           </div>
           
@@ -326,8 +345,12 @@ export default function POS() {
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">MUSKAAN ELECTRONICS</h1>
                 <p className="text-sm text-slate-600 mt-1">123 Main Street, City</p>
                 <p className="text-sm text-slate-600">Tel: +254 700 000 000</p>
-                <p className="text-sm text-slate-600 mt-2">Receipt #: {createdSaleId}</p>
-                <p className="text-sm text-slate-600">Date: {new Date().toLocaleString()}</p>
+                <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+                  <p className="text-sm text-slate-900 font-bold">RETAIL RECEIPT</p>
+                  <p className="text-xs text-slate-500">Receipt #: {createdSaleId}</p>
+                  <p className="text-xs text-slate-500">Date: {new Date().toLocaleString()}</p>
+                  <p className="text-xs text-slate-500">Payer: Walk-in Customer</p>
+                </div>
               </div>
 
               <div className="border-t border-b border-slate-200 py-4 mb-4">
