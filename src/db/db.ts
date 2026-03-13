@@ -63,7 +63,7 @@ export interface PurchaseOrder {
   supplierName: string;
   date: string;
   expectedDeliveryDate?: string;
-  status: 'Pending' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Approved' | 'Delivered' | 'Cancelled';
   notes?: string;
 }
 
@@ -72,6 +72,7 @@ export type LPO = PurchaseOrder;
 export interface Delivery {
   id?: number;
   purchaseOrderId?: number;
+  purchaseOrderIds?: number[];
   items: SaleItem[];
   supplierName: string;
   date: string;

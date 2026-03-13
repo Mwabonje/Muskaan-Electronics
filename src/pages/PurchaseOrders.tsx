@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, PurchaseOrder } from '../db/db';
-import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye, CheckCircle2 } from 'lucide-react';
 import ViewLPOModal from '../components/ViewLPOModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function PurchaseOrders() {
+  const { role } = useAuth();
   const lpos = useLiveQuery(() => db.purchaseOrders.reverse().toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLPO, setSelectedLPO] = useState<PurchaseOrder | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
+  const isAdmin = role === 'Super Admin' || role === 'Manager';
 
   const filteredLPOs = lpos.filter(lpo => {
     const matchesSearch = 
@@ -26,6 +29,17 @@ export default function PurchaseOrders() {
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const handleApprove = async (id: number) => {
+    if (!isAdmin) return;
+    if (confirm('Are you sure you want to approve this purchase order?')) {
+      try {
+        await db.purchaseOrders.update(id, { status: 'Approved' });
+      } catch (error) {
+        console.error("Failed to approve LPO:", error);
+      }
+    }
   };
 
   const handleExportCSV = () => {
@@ -104,7 +118,7 @@ export default function PurchaseOrders() {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Supplier</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Items</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -132,21 +146,37 @@ export default function PurchaseOrders() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-slate-400">
-                      {lpo.items.length} items
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      lpo.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500' :
+                      lpo.status === 'Delivered' ? 'bg-blue-500/10 text-blue-500' :
+                      lpo.status === 'Cancelled' ? 'bg-rose-500/10 text-rose-500' :
+                      'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      {lpo.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => {
-                        setSelectedLPO(lpo);
-                        setIsViewModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                      title="View LPO"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      {isAdmin && lpo.status === 'Pending' && (
+                        <button 
+                          onClick={() => handleApprove(lpo.id!)}
+                          className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                          title="Approve LPO"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => {
+                          setSelectedLPO(lpo);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                        title="View LPO"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -90,9 +90,17 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
                   <Calendar className="w-4 h-4 text-slate-400" />
                   Date: {new Date(delivery.date).toLocaleDateString()}
                 </div>
-                {delivery.purchaseOrderId && (
+                {delivery.purchaseOrderIds && delivery.purchaseOrderIds.length > 0 && (
+                  <div className="flex items-center justify-end gap-2 text-slate-800 font-medium flex-wrap">
+                    <span className="text-slate-500">LPOs:</span>
+                    {delivery.purchaseOrderIds.map(id => (
+                      <span key={id} className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold">LPO-{id.toString().padStart(4, '0')}</span>
+                    ))}
+                  </div>
+                )}
+                {!delivery.purchaseOrderIds && delivery.purchaseOrderId && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                    <span className="text-slate-500">LPO #:</span> {delivery.purchaseOrderId}
+                    <span className="text-slate-500">LPO #:</span> LPO-{delivery.purchaseOrderId.toString().padStart(4, '0')}
                   </div>
                 )}
               </div>

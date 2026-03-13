@@ -13,7 +13,7 @@ import {
   User
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, PurchaseOrder } from '../db/db';
 
 interface CartItem {
   id: string;
@@ -28,11 +28,13 @@ interface LogDeliveryModalProps {
 
 export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalProps) {
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const approvedLPOs = useLiveQuery(() => db.purchaseOrders.where('status').equals('Approved').toArray(), []) || [];
   
   const [filter, setFilter] = useState('ALL');
   const [cartItems, setCartItems] = useState<CartItem[]>([
     { id: crypto.randomUUID(), productId: '', quantity: 1 }
   ]);
+  const [selectedLpoIds, setSelectedLpoIds] = useState<number[]>([]);
   const [supplierName, setSupplierName] = useState('');
   const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
@@ -49,6 +51,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       setError(null);
       setFilter('ALL');
       setCartItems([{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+      setSelectedLpoIds([]);
       setSupplierName('');
       setReceivedBy('');
       setNotes('');
@@ -77,6 +80,48 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       }
       return item;
     }));
+  };
+
+  const handleLpoToggle = (lpo: PurchaseOrder) => {
+    setError(null);
+    const id = lpo.id!;
+    let newSelectedIds: number[];
+    
+    if (selectedLpoIds.includes(id)) {
+      newSelectedIds = selectedLpoIds.filter(i => i !== id);
+    } else {
+      newSelectedIds = [...selectedLpoIds, id];
+    }
+    
+    setSelectedLpoIds(newSelectedIds);
+
+    // Auto-populate items from selected LPOs
+    if (newSelectedIds.length > 0) {
+      const selectedLPOs = approvedLPOs.filter(l => newSelectedIds.includes(l.id!));
+      
+      // Merge items from all selected LPOs
+      const itemsMap = new Map<number, number>();
+      selectedLPOs.forEach(l => {
+        l.items.forEach(item => {
+          itemsMap.set(item.productId, (itemsMap.get(item.productId) || 0) + item.quantity);
+        });
+      });
+
+      const newCartItems = Array.from(itemsMap.entries()).map(([productId, quantity]) => ({
+        id: crypto.randomUUID(),
+        productId,
+        quantity
+      }));
+
+      setCartItems(newCartItems.length > 0 ? newCartItems : [{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+      
+      // Set supplier name from the first selected LPO if not set
+      if (selectedLPOs.length > 0 && !supplierName) {
+        setSupplierName(selectedLPOs[0].supplierName);
+      }
+    } else {
+      setCartItems([{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+    }
   };
 
   const filteredProducts = products.filter(p => {
@@ -116,14 +161,15 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
             productId: Number(item.productId),
             name: product?.name || 'Unknown Item',
             quantity: Number(item.quantity),
-            price: 0, // Price is not strictly needed for delivery log unless tracking cost
+            price: 0,
             subtotal: 0
           };
         }),
         supplierName,
         receivedBy,
         date: new Date().toISOString(),
-        notes: notes || undefined
+        notes: notes || undefined,
+        purchaseOrderIds: selectedLpoIds.length > 0 ? selectedLpoIds : undefined
       });
 
       // Update inventory stock (Increase)
@@ -142,8 +188,15 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
             previousStock: product.stock,
             newStock: newStock,
             date: new Date().toISOString(),
-            reason: `Delivery #${deliveryId} from ${supplierName}`
+            reason: `Delivery #${deliveryId} from ${supplierName}` + (selectedLpoIds.length > 0 ? ` (LPOs: ${selectedLpoIds.map(id => `LPO-${id.toString().padStart(4, '0')}`).join(', ')})` : '')
           });
+        }
+      }
+
+      // Update LPO statuses to 'Delivered'
+      if (selectedLpoIds.length > 0) {
+        for (const id of selectedLpoIds) {
+          await db.purchaseOrders.update(id, { status: 'Delivered' });
         }
       }
 
@@ -214,6 +267,14 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                     <span className="text-slate-500">Date:</span> {new Date().toLocaleDateString()}
                   </div>
+                  {selectedLpoIds.length > 0 && (
+                    <div className="flex items-center justify-end gap-2 text-slate-800 font-medium flex-wrap">
+                      <span className="text-slate-500">Linked LPOs:</span> 
+                      {selectedLpoIds.map(id => (
+                        <span key={id} className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold">LPO-{id.toString().padStart(4, '0')}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -294,6 +355,32 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {/* LPO Selection */}
+          <div className="space-y-3">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              Select Approved LPOs to Receive (Optional)
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1 bg-[#1e293b]/20 border border-slate-800 rounded-lg custom-scrollbar">
+              {approvedLPOs.map(lpo => (
+                <button
+                  key={lpo.id}
+                  onClick={() => handleLpoToggle(lpo)}
+                  className={`flex items-center gap-2 py-2 px-3 rounded-md text-xs font-bold transition-colors border ${
+                    selectedLpoIds.includes(lpo.id!) 
+                      ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' 
+                      : 'bg-slate-800/50 text-slate-400 border-transparent hover:text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  LPO-{lpo.id?.toString().padStart(4, '0')} ({lpo.supplierName})
+                </button>
+              ))}
+              {approvedLPOs.length === 0 && (
+                <p className="text-[10px] text-slate-500 p-2 italic w-full">No approved purchase orders available.</p>
+              )}
+            </div>
+          </div>
+
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
               <Shield className="w-4 h-4 mt-0.5 shrink-0" />
