@@ -6,7 +6,7 @@ import ViewLPOModal from '../components/ViewLPOModal';
 import { useAuth } from '../context/AuthContext';
 
 export default function PurchaseOrders() {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const lpos = useLiveQuery(() => db.purchaseOrders.reverse().toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,6 +36,18 @@ export default function PurchaseOrders() {
     if (confirm('Are you sure you want to approve this purchase order?')) {
       try {
         await db.purchaseOrders.update(id, { status: 'Approved' });
+        
+        // Log activity
+        const lpo = lpos.find(l => l.id === id);
+        await db.activities.add({
+          userId: user?.id || 0,
+          userName: user?.name || 'System',
+          userRole: user?.role || 'Admin',
+          type: 'LPO Approved',
+          description: `Approved LPO for ${lpo?.supplierName || 'Unknown'} (Total: Ksh ${lpo?.totalAmount.toLocaleString() || '0'})`,
+          date: new Date().toISOString(),
+          referenceId: id
+        });
       } catch (error) {
         console.error("Failed to approve LPO:", error);
       }

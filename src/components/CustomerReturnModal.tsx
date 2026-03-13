@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 interface CartItem {
   id: string;
@@ -28,6 +29,7 @@ interface CustomerReturnModalProps {
 }
 
 export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   
   const [filter, setFilter] = useState('ALL');
@@ -166,6 +168,19 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
           }
         }
       }
+
+
+
+      // Log activity
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: user?.role || 'Cashier',
+        type: 'Return',
+        description: `Processed a return of ${validItems.length} items from ${customerName} (Total Refund: Ksh ${totalRefund.toLocaleString()})`,
+        date: new Date().toISOString(),
+        referenceId: returnId as number
+      });
 
       setCreatedReturnId(returnId as number);
       setStep('preview');

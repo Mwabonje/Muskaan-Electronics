@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Package, History, ArrowUpRight, ArrowDownRight, RefreshCw, ShoppingCart, RotateCcw } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Product } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface ProductDetailsModalProps {
 }
 
 export default function ProductDetailsModal({ isOpen, onClose, product, initialTab = 'details' }: ProductDetailsModalProps) {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'history'>(initialTab);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -77,6 +79,17 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
             newStock: newStock,
             date: new Date().toISOString(),
             reason: 'Manual adjustment via product details'
+          });
+
+          // Log activity
+          await db.activities.add({
+            userId: user?.id || 0,
+            userName: user?.name || 'System',
+            userRole: user?.role || 'Admin',
+            type: 'Stock Adjustment',
+            description: `Manually adjusted stock for ${product.name} from ${oldStock} to ${newStock}`,
+            date: new Date().toISOString(),
+            referenceId: product.id
           });
         }
       } else {

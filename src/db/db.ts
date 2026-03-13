@@ -118,6 +118,17 @@ export interface Message {
   type: 'system' | 'user';
 }
 
+export interface Activity {
+  id?: number;
+  userId: number;
+  userName: string;
+  userRole: Role;
+  type: 'Sale' | 'Quote' | 'LPO Created' | 'LPO Approved' | 'Delivery' | 'Return' | 'Stock Adjustment';
+  description: string;
+  date: string;
+  referenceId?: number;
+}
+
 const db = new Dexie('MuskaanDB') as Dexie & {
   users: EntityTable<User, 'id'>;
   products: EntityTable<Product, 'id'>;
@@ -128,10 +139,11 @@ const db = new Dexie('MuskaanDB') as Dexie & {
   returns: EntityTable<Return, 'id'>;
   stockHistory: EntityTable<StockHistory, 'id'>;
   messages: EntityTable<Message, 'id'>;
+  activities: EntityTable<Activity, 'id'>;
 };
 
 // Schema declaration
-db.version(6).stores({
+db.version(7).stores({
   users: '++id, name, email, role, status',
   products: '++id, name, brand, category, status',
   sales: '++id, date, customerName, paymentMethod',
@@ -140,7 +152,8 @@ db.version(6).stores({
   deliveries: '++id, date, supplierName, purchaseOrderId',
   returns: '++id, date, customerName, saleId',
   stockHistory: '++id, productId, date, changeType',
-  messages: '++id, senderId, receiverId, date, read, type'
+  messages: '++id, senderId, receiverId, date, read, type',
+  activities: '++id, userId, userRole, date, type'
 }).upgrade(tx => {
   return tx.table('users').toCollection().modify(user => {
     if (!user.password) {

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Quote } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 import ViewQuoteModal from './ViewQuoteModal';
 
 interface CartItem {
@@ -28,6 +29,7 @@ interface NewQuoteModalProps {
 }
 
 export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   
   const [filter, setFilter] = useState('ALL');
@@ -144,6 +146,17 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
       
       const id = await db.quotes.add(newQuote);
       newQuote.id = id as number;
+
+      // Log activity
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: user?.role || 'Cashier',
+        type: 'Quote',
+        description: `Generated a quote of Ksh ${grandTotal.toLocaleString()}${customerName ? ` for ${customerName}` : ''}`,
+        date: new Date().toISOString(),
+        referenceId: id as number
+      });
 
       setGeneratedQuote(newQuote);
     } catch (err) {

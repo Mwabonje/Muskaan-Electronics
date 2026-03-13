@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, PurchaseOrder } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 interface CartItem {
   id: string;
@@ -27,6 +28,7 @@ interface LogDeliveryModalProps {
 }
 
 export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const approvedLPOs = useLiveQuery(() => db.purchaseOrders.where('status').equals('Approved').toArray(), []) || [];
   
@@ -199,6 +201,19 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
           await db.purchaseOrders.update(id, { status: 'Delivered' });
         }
       }
+
+
+
+      // Log activity
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: user?.role || 'Cashier',
+        type: 'Delivery',
+        description: `Logged a delivery of ${validItems.length} items from ${supplierName}`,
+        date: new Date().toISOString(),
+        referenceId: deliveryId as number
+      });
 
       setCreatedDeliveryId(deliveryId as number);
       setStep('preview');

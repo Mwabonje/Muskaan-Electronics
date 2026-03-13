@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 interface CartItem {
   id: string;
@@ -32,6 +33,7 @@ interface NewSaleModalProps {
 }
 
 export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   
   const [filter, setFilter] = useState('ALL');
@@ -171,6 +173,17 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
           });
         }
       }
+
+      // Log activity
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: user?.role || 'Cashier',
+        type: 'Sale',
+        description: `Recorded a sale of Ksh ${grandTotal.toLocaleString()}${customerName ? ` to ${customerName}` : ''}`,
+        date: new Date().toISOString(),
+        referenceId: saleId
+      });
 
       setCreatedSaleId(saleId);
       setStep('preview');

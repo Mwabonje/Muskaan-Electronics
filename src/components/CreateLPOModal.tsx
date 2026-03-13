@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 interface CartItem {
   id: string;
@@ -27,6 +28,7 @@ interface CreateLPOModalProps {
 }
 
 export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   
   const [filter, setFilter] = useState('ALL');
@@ -138,6 +140,18 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
         expectedDeliveryDate: expectedDeliveryDate || undefined,
         notes: notes || undefined,
         status: 'Pending'
+      });
+
+
+      // Log activity
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: user?.role || 'Cashier',
+        type: 'LPO Created',
+        description: `Created a new LPO for ${supplierName} (Total: Ksh ${grandTotal.toLocaleString()})`,
+        date: new Date().toISOString(),
+        referenceId: lpoId as number
       });
 
       setCreatedLPOId(lpoId as number);

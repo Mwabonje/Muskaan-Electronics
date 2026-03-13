@@ -14,7 +14,9 @@ import {
   ChevronRight,
   History,
   List,
-  FileText
+  FileText,
+  CheckCircle2,
+  MessageSquare
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
@@ -23,8 +25,10 @@ import NewQuoteModal from '../components/NewQuoteModal';
 import CreateLPOModal from '../components/CreateLPOModal';
 import LogDeliveryModal from '../components/LogDeliveryModal';
 import CustomerReturnModal from '../components/CustomerReturnModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
+  const { user, role } = useAuth();
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
   const [isCreateLPOModalOpen, setIsCreateLPOModalOpen] = useState(false);
@@ -41,6 +45,15 @@ export default function Dashboard() {
   const todaysSales = useLiveQuery(() => 
     db.sales.filter(sale => new Date(sale.date) >= today).toArray(), 
   []) || [];
+
+  const activities = useLiveQuery(() => db.activities.reverse().limit(10).toArray(), []) || [];
+  
+  const filteredActivities = activities.filter(activity => {
+    if (role === 'Super Admin') return true;
+    if (role === 'Cashier') return activity.userId === user?.id;
+    // For Managers/Admins
+    return activity.userRole !== 'Super Admin';
+  });
 
   const todaysRevenue = todaysSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
   
@@ -335,16 +348,76 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <History className="w-5 h-5 text-slate-400" />
               <h2 className="text-lg font-bold text-white">Recent Activity</h2>
             </div>
             
-            <Link to="/sales" className="w-full flex justify-center py-4 bg-[#0B1120] border border-slate-800 hover:bg-[#1e293b] rounded-xl text-xs font-bold text-blue-500 tracking-wider uppercase transition-colors">
-              View All Transactions
-            </Link>
+            <div className="bg-[#0B1120] border border-slate-800 rounded-2xl p-6">
+              <div className="space-y-8 relative">
+                {/* Timeline Line */}
+                {filteredActivities.length > 1 && (
+                  <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-slate-800" />
+                )}
+
+                {filteredActivities.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-500">No recent activity</p>
+                  </div>
+                ) : (
+                  filteredActivities.map((activity, index) => (
+                    <div key={activity.id} className="relative flex gap-4 group">
+                      {/* Status Icon */}
+                      <div className="relative z-10 flex-shrink-0">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-[#0B1120] ${
+                          activity.type === 'Sale' ? 'bg-emerald-500/10 text-emerald-500' :
+                          activity.type === 'Return' ? 'bg-amber-500/10 text-amber-500' :
+                          'bg-blue-500/10 text-blue-500'
+                        }`}>
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <h3 className="text-sm font-bold text-white leading-none mb-1">
+                              {activity.type === 'Sale' ? 'Sale Completed' : 
+                               activity.type === 'Quote' ? 'Quote Generated' : 
+                               activity.type === 'Return' ? 'Returned Processed' :
+                               activity.type === 'Log' ? 'System Log' :
+                               activity.type}
+                            </h3>
+                            <p className="text-xs text-slate-400 line-clamp-2">
+                              {activity.description}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">
+                                {new Date(activity.date).toISOString().replace('T', ' ').split('.')[0]}Z
+                              </span>
+                              <span className="text-[10px] text-slate-500">•</span>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">
+                                BY {activity.userRole}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <button className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors">
+                            <MessageSquare className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <Link to="/sales" className="mt-8 block w-full text-center text-[10px] font-bold text-blue-500 hover:text-blue-400 tracking-[0.2em] uppercase transition-colors">
+                View All Transactions
+              </Link>
+            </div>
           </div>
         </div>
       </div>
