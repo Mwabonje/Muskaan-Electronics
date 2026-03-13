@@ -90,9 +90,9 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
                   <Calendar className="w-4 h-4 text-slate-400" />
                   Date: {new Date(delivery.date).toLocaleDateString()}
                 </div>
-                {delivery.lpoNumber && (
+                {delivery.purchaseOrderId && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                    <span className="text-slate-500">LPO #:</span> {delivery.lpoNumber}
+                    <span className="text-slate-500">LPO #:</span> {delivery.purchaseOrderId}
                   </div>
                 )}
               </div>

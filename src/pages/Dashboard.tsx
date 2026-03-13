@@ -47,12 +47,15 @@ export default function Dashboard() {
   const todaysProfit = todaysSales.reduce((sum, sale) => {
     return sum + sale.items.reduce((itemSum, item) => {
       const product = products.find(p => p.id === item.productId);
-      const cost = product ? product.costPrice : 0;
+      const cost = product ? (typeof product.cost === 'string' ? parseFloat(product.cost.replace(/[^0-9.-]+/g, '')) : product.cost) : 0;
       return itemSum + ((item.price - cost) * item.quantity);
     }, 0);
   }, 0);
 
-  const totalInventoryValue = products.reduce((sum, product) => sum + (product.costPrice * product.stock), 0);
+  const totalInventoryValue = products.reduce((sum, product) => {
+    const cost = typeof product.cost === 'string' ? parseFloat(product.cost.replace(/[^0-9.-]+/g, '')) : product.cost;
+    return sum + (cost * product.stock);
+  }, 0);
 
   const formatPrice = (priceStr: string | number) => {
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

@@ -32,7 +32,7 @@ export default function Deliveries() {
         `"D-${d.id?.toString().padStart(4, '0')}"`,
         `"${new Date(d.date).toLocaleDateString()}"`,
         `"${d.supplierName}"`,
-        `"${d.lpoNumber || 'N/A'}"`,
+        `"${d.purchaseOrderId || 'N/A'}"`,
         d.items.length
       ].join(','))
     ].join('\n');
@@ -122,7 +122,7 @@ export default function Deliveries() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-400">
-                      {delivery.lpoNumber || 'N/A'}
+                      {delivery.purchaseOrderId || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4">

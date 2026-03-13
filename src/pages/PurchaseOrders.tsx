@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, LPO } from '../db/db';
+import { db, PurchaseOrder } from '../db/db';
 import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import ViewLPOModal from '../components/ViewLPOModal';
 
 export default function PurchaseOrders() {
-  const lpos = useLiveQuery(() => db.lpos.reverse().toArray(), []) || [];
+  const lpos = useLiveQuery(() => db.purchaseOrders.reverse().toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLPO, setSelectedLPO] = useState<LPO | null>(null);
+  const [selectedLPO, setSelectedLPO] = useState<PurchaseOrder | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 

@@ -65,6 +65,8 @@ export interface PurchaseOrder {
   notes?: string;
 }
 
+export type LPO = PurchaseOrder;
+
 export interface Delivery {
   id?: number;
   purchaseOrderId?: number;

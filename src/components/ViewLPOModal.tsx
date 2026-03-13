@@ -1,11 +1,11 @@
 import React from 'react';
 import { X, Printer, FileText, Building2, Calendar, ClipboardList } from 'lucide-react';
-import { LPO } from '../db/db';
+import { PurchaseOrder } from '../db/db';
 
 interface ViewLPOModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lpo: LPO | null;
+  lpo: PurchaseOrder | null;
 }
 
 export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps) {
@@ -111,7 +111,7 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {lpo.items.map((item, index) => {
-                  const unitCost = parseFloat(item.unitCost.toString().replace(/[^0-9.-]+/g, '')) || 0;
+                  const unitCost = Number(item.price) || 0;
                   const total = item.quantity * unitCost;
                   return (
                     <tr key={index} className="group hover:bg-slate-50 transition-colors">
