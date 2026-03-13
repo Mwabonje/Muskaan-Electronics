@@ -2,13 +2,17 @@ import { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type User, type Role } from '../db/db';
+import { useAuth } from '../context/AuthContext';
 
 export default function Users() {
+  const { role: currentUserRole } = useAuth();
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
   
   // New User Form State
   const [formData, setFormData] = useState({
@@ -39,10 +43,19 @@ export default function Users() {
     await db.users.delete(id);
   };
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    if (currentUserRole !== 'Super Admin' && user.role === 'Super Admin') {
+      return false;
+    }
+    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+           user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const roles = ['All', 'Super Admin', 'Admin', 'Manager', 'Cashier'];
+  const statuses = ['All', 'Active', 'Inactive'];
 
   return (
     <div className="p-4 sm:p-8 relative">
@@ -75,14 +88,20 @@ export default function Users() {
           </div>
         </div>
         <div className="flex gap-3 overflow-x-auto">
-          <button className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap">
-            <span className="text-sm font-medium">Role: All</span>
-            <ChevronDown className="w-4 h-4" />
-          </button>
-          <button className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap">
-            <span className="text-sm font-medium">Status: All</span>
-            <ChevronDown className="w-4 h-4" />
-          </button>
+          <select 
+            className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            {roles.map(r => <option key={r} value={r}>Role: {r}</option>)}
+          </select>
+          <select 
+            className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            {statuses.map(s => <option key={s} value={s}>Status: {s}</option>)}
+          </select>
         </div>
       </div>
 
@@ -227,7 +246,9 @@ export default function Users() {
                 >
                   <option value="Manager">Manager</option>
                   <option value="Cashier">Cashier</option>
-                  <option value="Super Admin">Super Admin</option>
+                  {currentUserRole === 'Super Admin' && (
+                    <option value="Super Admin">Super Admin</option>
+                  )}
                 </select>
               </div>
 

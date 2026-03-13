@@ -44,6 +44,7 @@ export default function Layout() {
     { name: 'Reports', path: '/reports', icon: BarChart3, hideFor: ['Cashier'] },
     { name: 'Messages', path: '/messages', icon: Mail },
     { name: 'User Management', path: '/users', icon: Users, hideFor: ['Cashier'] },
+    { name: 'Settings', path: '/settings', icon: SettingsIcon, hideFor: ['Cashier', 'Manager'] },
   ];
 
   const filteredNavItems = navItems.filter(item => !item.hideFor?.includes(role));
@@ -112,13 +113,22 @@ export default function Layout() {
                 <Users className="w-4 h-4" />
               </div>
               <div className="overflow-hidden flex-1">
-                <p className="text-xs font-bold text-white truncate">Super Administrator</p>
-                <p className="text-[10px] text-slate-500 uppercase tracking-wider truncate">Super Admin</p>
+                <p className="text-xs font-bold text-white truncate">{user?.name || 'User'}</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider truncate">{role}</p>
               </div>
             </div>
-            <button className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2" title="Settings">
-              <SettingsIcon className="w-4 h-4" />
-            </button>
+            {role === 'Super Admin' && (
+              <button 
+                onClick={() => {
+                  navigate('/settings');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2" 
+                title="Settings"
+              >
+                <SettingsIcon className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button onClick={handleLogout} className="mt-2 w-full flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/50">
             <LogOut className="w-4 h-4" />

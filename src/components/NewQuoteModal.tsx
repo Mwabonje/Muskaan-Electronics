@@ -39,6 +39,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
   const [generatedQuote, setGeneratedQuote] = useState<Quote | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
       setCustomerName('');
       setNotes('');
       setGeneratedQuote(null);
+      setError(null);
     }
   }, [isOpen]);
 
@@ -57,15 +59,18 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
 
   const handleAddItem = () => {
     setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+    setError(null);
   };
 
   const handleRemoveItem = (id: string) => {
     if (cartItems.length > 1) {
       setCartItems(cartItems.filter(item => item.id !== id));
     }
+    setError(null);
   };
 
   const handleItemChange = (id: string, field: keyof CartItem, value: any) => {
+    setError(null);
     setCartItems(cartItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
@@ -109,10 +114,11 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmQuote = async () => {
+    setError(null);
     // Basic validation
     const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
-      alert("Please add at least one valid item.");
+      setError("Please add at least one valid item.");
       return;
     }
 
@@ -140,9 +146,9 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
       newQuote.id = id as number;
 
       setGeneratedQuote(newQuote);
-    } catch (error) {
-      console.error("Failed to generate quote:", error);
-      alert("Failed to generate quote. Please try again.");
+    } catch (err) {
+      console.error("Failed to generate quote:", err);
+      setError("Failed to generate quote. Please try again.");
     }
   };
 
@@ -172,6 +178,13 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {error && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           {/* Filter Item List */}
           <div className="space-y-3">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filter Item List</label>

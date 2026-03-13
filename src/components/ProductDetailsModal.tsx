@@ -14,6 +14,7 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
   const [activeTab, setActiveTab] = useState<'details' | 'history'>(initialTab);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch stock history for this product
   const stockHistory = useLiveQuery(
@@ -51,6 +52,7 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
 
   const handleSave = async () => {
     setIsSaving(true);
+    setError(null);
     try {
       if (product?.id) {
         // Update existing
@@ -99,9 +101,9 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         }
       }
       onClose();
-    } catch (error) {
-      console.error("Failed to save product:", error);
-      alert("Failed to save product.");
+    } catch (err) {
+      console.error("Failed to save product:", err);
+      setError("Failed to save product. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -166,6 +168,12 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+          {error && (
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-600 text-sm">
+              <X className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
           {activeTab === 'details' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-4 sm:col-span-2">

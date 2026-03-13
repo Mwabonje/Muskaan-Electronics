@@ -44,9 +44,16 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'M-Pesa'>('Cash');
   const [notes, setNotes] = useState('');
 
+  const [step, setStep] = useState<'form' | 'preview'>('form');
+  const [createdSaleId, setCreatedSaleId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
+      setStep('form');
+      setCreatedSaleId(null);
+      setError(null);
       setFilter('ALL');
       setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
       setDiscountType('percent');
@@ -61,15 +68,18 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
 
   const handleAddItem = () => {
     setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+    setError(null);
   };
 
   const handleRemoveItem = (id: string) => {
     if (cartItems.length > 1) {
       setCartItems(cartItems.filter(item => item.id !== id));
     }
+    setError(null);
   };
 
   const handleItemChange = (id: string, field: keyof CartItem, value: any) => {
+    setError(null);
     setCartItems(cartItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
@@ -113,10 +123,11 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmSale = async () => {
+    setError(null);
     // Basic validation
     const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
-      alert("Please add at least one valid item.");
+      setError("Please add at least one valid item.");
       return;
     }
 
@@ -161,10 +172,11 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
         }
       }
 
-      onClose();
-    } catch (error) {
-      console.error("Failed to record sale:", error);
-      alert("Failed to record sale. Please try again.");
+      setCreatedSaleId(saleId);
+      setStep('preview');
+    } catch (err) {
+      console.error("Failed to record sale:", err);
+      setError("Failed to record sale. Please try again.");
     }
   };
 
@@ -173,6 +185,120 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
     const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
     return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (step === 'preview') {
+    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
+        
+        <div className="relative w-full max-w-md bg-white rounded-xl shadow-2xl flex flex-col max-h-full overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none">
+          {/* Header - Hidden in print */}
+          <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50 print:hidden">
+            <h2 className="text-lg font-bold text-slate-800">Receipt Preview</h2>
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Receipt Body */}
+          <div className="flex-1 overflow-y-auto p-8 bg-white text-slate-800 print:overflow-visible print:p-4">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-black text-slate-900 mb-1">HARDWARE STORE</h1>
+              <p className="text-sm text-slate-500">123 Main Street, City</p>
+              <p className="text-sm text-slate-500">Tel: +254 700 000 000</p>
+            </div>
+
+            <div className="flex justify-between items-end mb-6 pb-4 border-b border-slate-200">
+              <div>
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Receipt No.</p>
+                <p className="text-sm font-mono font-bold">#{createdSaleId?.toString().padStart(6, '0')}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Date</p>
+                <p className="text-sm font-mono">{new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</p>
+              </div>
+            </div>
+
+            {customerName && (
+              <div className="mb-6">
+                <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Customer</p>
+                <p className="text-sm font-medium">{customerName}</p>
+              </div>
+            )}
+
+            <table className="w-full mb-6">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
+                  <th className="text-center py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Qty</th>
+                  <th className="text-right py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
+                  <th className="text-right py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {validItems.map(item => {
+                  const product = products.find(p => p.id === Number(item.productId));
+                  const price = Number(item.price);
+                  const qty = Number(item.quantity);
+                  return (
+                    <tr key={item.id} className="border-b border-slate-100">
+                      <td className="py-3 font-medium">{product?.name || 'Unknown Item'}</td>
+                      <td className="py-3 text-center">{qty}</td>
+                      <td className="py-3 text-right">{price.toLocaleString()}</td>
+                      <td className="py-3 text-right font-bold">{((price * qty)).toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="space-y-2 mb-8">
+              <div className="flex justify-between text-sm text-slate-500">
+                <span>Subtotal</span>
+                <span>Ksh {subtotal.toLocaleString()}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-rose-500">
+                  <span>Discount</span>
+                  <span>- Ksh {discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-lg font-black text-slate-900 pt-2 border-t border-slate-200">
+                <span>Total</span>
+                <span>Ksh {grandTotal.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="text-center text-sm text-slate-500 space-y-1">
+              <p>Payment Method: <span className="font-bold text-slate-700">{paymentMethod}</span></p>
+              <p>Thank you for your business!</p>
+            </div>
+          </div>
+
+          {/* Footer - Hidden in print */}
+          <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 print:hidden">
+            <button 
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              Close
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <FileText className="w-4 h-4" /> Print Receipt
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -190,6 +316,13 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {error && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           {/* Filter Item List */}
           <div className="space-y-3">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Filter Item List</label>

@@ -110,7 +110,7 @@ export default function App() {
               </ProtectedRoute>
             } />
             <Route path="settings" element={
-              <ProtectedRoute restrictedRoles={['Cashier']}>
+              <ProtectedRoute restrictedRoles={['Cashier', 'Manager']}>
                 <Settings />
               </ProtectedRoute>
             } />

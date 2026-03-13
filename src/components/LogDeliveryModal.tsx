@@ -37,9 +37,16 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
   const [receivedBy, setReceivedBy] = useState('');
   const [notes, setNotes] = useState('');
 
+  const [step, setStep] = useState<'form' | 'preview'>('form');
+  const [createdDeliveryId, setCreatedDeliveryId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
+      setStep('form');
+      setCreatedDeliveryId(null);
+      setError(null);
       setFilter('ALL');
       setCartItems([{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
       setSupplierName('');
@@ -52,15 +59,18 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
 
   const handleAddItem = () => {
     setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+    setError(null);
   };
 
   const handleRemoveItem = (id: string) => {
     if (cartItems.length > 1) {
       setCartItems(cartItems.filter(item => item.id !== id));
     }
+    setError(null);
   };
 
   const handleItemChange = (id: string, field: keyof CartItem, value: any) => {
+    setError(null);
     setCartItems(cartItems.map(item => {
       if (item.id === id) {
         return { ...item, [field]: value };
@@ -81,18 +91,19 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmDelivery = async () => {
+    setError(null);
     // Basic validation
     const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
-      alert("Please add at least one valid item.");
+      setError("Please add at least one valid item.");
       return;
     }
     if (!supplierName.trim()) {
-      alert("Please enter a supplier name.");
+      setError("Please enter a supplier name.");
       return;
     }
     if (!receivedBy.trim()) {
-      alert("Please enter who received the delivery.");
+      setError("Please enter who received the delivery.");
       return;
     }
 
@@ -136,12 +147,136 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
         }
       }
 
-      onClose();
-    } catch (error) {
-      console.error("Failed to log delivery:", error);
-      alert("Failed to log delivery. Please try again.");
+      setCreatedDeliveryId(deliveryId as number);
+      setStep('preview');
+    } catch (err) {
+      console.error("Failed to log delivery:", err);
+      setError("Failed to log delivery. Please try again.");
     }
   };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  if (step === 'preview') {
+    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
+        
+        <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl flex flex-col max-h-full overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none">
+          {/* Header - Hidden in print */}
+          <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50 print:hidden">
+            <h2 className="text-lg font-bold text-slate-800">Delivery Preview</h2>
+            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Delivery Body */}
+          <div className="flex-1 overflow-y-auto p-8 bg-white text-slate-900 print:overflow-visible print:p-4">
+            <div className="flex justify-between items-start border-b border-slate-200 pb-6 mb-6">
+              <div>
+                <h1 className="text-3xl font-black text-slate-900 tracking-tight">DELIVERY NOTE</h1>
+                <p className="text-sm text-slate-500 font-medium mt-1">Goods Received Note</p>
+              </div>
+              <div className="text-right">
+                <h2 className="text-xl font-bold text-blue-600">HARDWARE STORE</h2>
+                <p className="text-sm text-slate-600 mt-1">123 Main Street, City</p>
+                <p className="text-sm text-slate-600">Tel: +254 700 000 000</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Supplier</p>
+                  <div className="flex items-center gap-2 text-slate-800 font-medium">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    {supplierName}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Received By</p>
+                  <div className="flex items-center gap-2 text-slate-800 font-medium">
+                    <User className="w-4 h-4 text-slate-400" />
+                    {receivedBy}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4 text-right">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Delivery Details</p>
+                  <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
+                    <span className="text-slate-500">Delivery #:</span> {createdDeliveryId}
+                  </div>
+                  <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
+                    <span className="text-slate-500">Date:</span> {new Date().toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <table className="w-full text-left border-collapse mb-8">
+              <thead>
+                <tr className="border-b-2 border-slate-200">
+                  <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Item Description</th>
+                  <th className="py-3 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Qty Received</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {validItems.map(item => {
+                  const product = products.find(p => p.id === Number(item.productId));
+                  const qty = Number(item.quantity);
+                  return (
+                    <tr key={item.id} className="group hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-4 text-sm font-medium text-slate-800">{product?.name || 'Unknown Item'}</td>
+                      <td className="py-4 px-4 text-sm text-slate-600 text-center">{qty}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {notes && (
+              <div className="pt-8 border-t border-slate-200 mt-8">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notes & Remarks</h3>
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">{notes}</p>
+              </div>
+            )}
+            
+            <div className="mt-16 pt-8 border-t border-slate-200 grid grid-cols-2 gap-8">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Delivered By (Signature)</p>
+                <div className="border-b border-slate-300 w-full"></div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-8">Received By (Signature)</p>
+                <div className="border-b border-slate-300 w-full"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer - Hidden in print */}
+          <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 print:hidden">
+            <button 
+              onClick={onClose}
+              className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              Close
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <FileText className="w-4 h-4" /> Print Delivery Note
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -159,6 +294,13 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           
+          {error && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
           {/* Delivery Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">

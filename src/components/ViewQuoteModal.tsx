@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { X, Printer, FileText, Building2, User, Calendar, Tag } from 'lucide-react';
 import { Quote } from '../db/db';
 
@@ -9,28 +9,19 @@ interface ViewQuoteModalProps {
 }
 
 export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModalProps) {
-  const printRef = useRef<HTMLDivElement>(null);
-
   if (!isOpen || !quote) return null;
 
   const handlePrint = () => {
-    const printContent = printRef.current;
-    if (printContent) {
-      const originalContents = document.body.innerHTML;
-      document.body.innerHTML = printContent.innerHTML;
-      window.print();
-      document.body.innerHTML = originalContents;
-      window.location.reload(); // Reload to restore React state bindings
-    }
+    window.print();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
       
-      <div className="relative w-full max-w-3xl bg-[#0B1120] rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-full overflow-hidden">
+      <div className="relative w-full max-w-3xl bg-[#0B1120] rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-full overflow-hidden print:shadow-none print:w-full print:max-w-none print:rounded-none print:border-none print:bg-white">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a]">
+        <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a] print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
               <FileText className="w-5 h-5" />
@@ -56,7 +47,7 @@ export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModa
         </div>
 
         {/* Body - Printable Area */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 custom-scrollbar bg-white text-slate-900" ref={printRef}>
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 custom-scrollbar bg-white text-slate-900 print:overflow-visible print:p-4">
           
           {/* Print Header */}
           <div className="flex justify-between items-start border-b border-slate-200 pb-6">

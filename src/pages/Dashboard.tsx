@@ -34,11 +34,65 @@ export default function Dashboard() {
   const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
   const lowStockCount = useLiveQuery(() => db.products.where('status').equals('Low Stock').count(), []) || 0;
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const todaysSales = useLiveQuery(() => 
+    db.sales.filter(sale => new Date(sale.date) >= today).toArray(), 
+  []) || [];
+
+  const todaysRevenue = todaysSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  
+  const todaysProfit = todaysSales.reduce((sum, sale) => {
+    return sum + sale.items.reduce((itemSum, item) => {
+      const product = products.find(p => p.id === item.productId);
+      const cost = product ? product.costPrice : 0;
+      return itemSum + ((item.price - cost) * item.quantity);
+    }, 0);
+  }, 0);
+
+  const totalInventoryValue = products.reduce((sum, product) => sum + (product.costPrice * product.stock), 0);
 
   const formatPrice = (priceStr: string | number) => {
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const [inventoryFilter, setInventoryFilter] = useState('All');
+
+  const filteredProducts = products.filter(p => {
+    if (inventoryFilter === 'All') return true;
+    return p.status === inventoryFilter;
+  });
+
+  const handleExportCSV = () => {
+    if (!filteredProducts || filteredProducts.length === 0) return;
+    
+    const headers = ['Item Name', 'Category', 'Stock Level', 'Unit', 'Status', 'Cost', 'Selling'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredProducts.map(p => [
+        `"${p.name}"`,
+        `"${p.category}"`,
+        p.stock,
+        '"Pcs"',
+        `"${p.status}"`,
+        p.cost,
+        p.selling
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -53,7 +107,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-2xl font-bold text-white mb-1">{formatPrice(totalInventoryValue)}</p>
             <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
               <TrendingUpIcon className="w-3 h-3" /> Based on cost price
             </p>
@@ -68,9 +122,9 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-2xl font-bold text-white mb-1">{formatPrice(todaysRevenue)}</p>
             <p className="text-[10px] font-bold text-purple-500 uppercase">
-              0 Transactions
+              {todaysSales.length} Transactions
             </p>
           </div>
         </div>
@@ -83,7 +137,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">Ksh 0</p>
+            <p className="text-2xl font-bold text-white mb-1">{formatPrice(todaysProfit)}</p>
             <p className="text-[10px] font-bold text-teal-500 uppercase">
               Net Income (Est)
             </p>
@@ -116,11 +170,20 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-white">Inventory Overview</h2>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors">
-                <Filter className="w-3.5 h-3.5" />
-                Filter
-              </button>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors">
+              <select 
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors outline-none"
+                value={inventoryFilter}
+                onChange={(e) => setInventoryFilter(e.target.value)}
+              >
+                <option value="All">All Status</option>
+                <option value="In Stock">In Stock</option>
+                <option value="Low Stock">Low Stock</option>
+                <option value="Out of Stock">Out of Stock</option>
+              </select>
+              <button 
+                onClick={handleExportCSV}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+              >
                 <Download className="w-3.5 h-3.5" />
                 Export CSV
               </button>
@@ -141,14 +204,14 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.length === 0 ? (
+                  {filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
                         No items found matching your criteria.
                       </td>
                     </tr>
                   ) : (
-                    products.slice(0, 5).map((product) => (
+                    filteredProducts.slice(0, 5).map((product) => (
                       <tr key={product.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
                         <td className="px-6 py-4 text-sm font-medium text-white">{product.name}</td>
                         <td className="px-6 py-4 text-sm text-slate-400">{product.category}</td>
@@ -276,9 +339,9 @@ export default function Dashboard() {
               <h2 className="text-lg font-bold text-white">Recent Activity</h2>
             </div>
             
-            <button className="w-full py-4 bg-[#0B1120] border border-slate-800 hover:bg-[#1e293b] rounded-xl text-xs font-bold text-blue-500 tracking-wider uppercase transition-colors">
+            <Link to="/sales" className="w-full flex justify-center py-4 bg-[#0B1120] border border-slate-800 hover:bg-[#1e293b] rounded-xl text-xs font-bold text-blue-500 tracking-wider uppercase transition-colors">
               View All Transactions
-            </button>
+            </Link>
           </div>
         </div>
       </div>
