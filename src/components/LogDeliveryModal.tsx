@@ -39,6 +39,9 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
   const [selectedLpoIds, setSelectedLpoIds] = useState<number[]>([]);
   const [supplierName, setSupplierName] = useState('');
   const [receivedBy, setReceivedBy] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [plateNumber, setPlateNumber] = useState('');
+  const [receivedTime, setReceivedTime] = useState('');
   const [notes, setNotes] = useState('');
 
   const [step, setStep] = useState<'form' | 'preview'>('form');
@@ -56,6 +59,9 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       setSelectedLpoIds([]);
       setSupplierName('');
       setReceivedBy('');
+      setDriverName('');
+      setPlateNumber('');
+      setReceivedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
       setNotes('');
     }
   }, [isOpen]);
@@ -169,6 +175,9 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
         }),
         supplierName,
         receivedBy,
+        driverName: driverName || undefined,
+        plateNumber: plateNumber || undefined,
+        receivedTime: receivedTime || undefined,
         date: new Date().toISOString(),
         notes: notes || undefined,
         purchaseOrderIds: selectedLpoIds.length > 0 ? selectedLpoIds : undefined
@@ -267,11 +276,33 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Received By</p>
-                  <div className="flex items-center gap-2 text-slate-800 font-medium">
-                    <User className="w-4 h-4 text-slate-400" />
-                    {receivedBy}
+                  <div className="flex flex-col text-slate-800 font-medium">
+                    <div className="flex items-center gap-2">
+                       <User className="w-4 h-4 text-slate-400" />
+                       {receivedBy}
+                    </div>
+                    {receivedTime && <span className="text-xs text-slate-500 ml-6">at {receivedTime}</span>}
                   </div>
                 </div>
+                {(driverName || plateNumber) && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transport Details</p>
+                    <div className="flex flex-col text-slate-800 font-medium">
+                      {driverName && (
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-slate-400" />
+                          Driver: {driverName}
+                        </div>
+                      )}
+                      {plateNumber && (
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 flex items-center justify-center text-[10px] font-bold bg-slate-100 text-slate-500 rounded border border-slate-200">PL</span>
+                          Plate: {plateNumber}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-4 text-right">
                 <div className="space-y-1">
@@ -427,6 +458,44 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                 onChange={(e) => setReceivedBy(e.target.value)}
                 className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 placeholder="e.g. John Doe"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3 h-3" /> Time Received
+              </label>
+              <input 
+                type="time" 
+                value={receivedTime}
+                onChange={(e) => setReceivedTime(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Truck className="w-3 h-3" /> Driver's Name
+              </label>
+              <input 
+                type="text" 
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                placeholder="e.g. Samuel Waweru"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3 h-3" /> Number Plate
+              </label>
+              <input 
+                type="text" 
+                value={plateNumber}
+                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                placeholder="e.g. KDL 123X"
               />
             </div>
           </div>

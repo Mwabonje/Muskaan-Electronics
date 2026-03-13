@@ -74,11 +74,33 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Received By</p>
-                <div className="flex items-center gap-2 text-slate-800 font-medium">
-                  <User className="w-4 h-4 text-slate-400" />
-                  {delivery.receivedBy}
+                <div className="flex flex-col text-slate-800 font-medium">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-400" />
+                    {delivery.receivedBy}
+                  </div>
+                  {delivery.receivedTime && <span className="text-xs text-slate-500 ml-6">at {delivery.receivedTime}</span>}
                 </div>
               </div>
+              {(delivery.driverName || delivery.plateNumber) && (
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transport Details</p>
+                  <div className="flex flex-col text-slate-800 font-medium">
+                    {delivery.driverName && (
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-slate-400" />
+                        Driver: {delivery.driverName}
+                      </div>
+                    )}
+                    {delivery.plateNumber && (
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 h-4 flex items-center justify-center text-[10px] font-bold bg-slate-100 text-slate-500 rounded border border-slate-200">PL</span>
+                        Plate: {delivery.plateNumber}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-4 text-right">
               <div className="space-y-1">

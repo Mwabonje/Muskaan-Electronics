@@ -79,6 +79,9 @@ export interface Delivery {
   supplierName: string;
   date: string;
   receivedBy: string;
+  driverName?: string;
+  plateNumber?: string;
+  receivedTime?: string;
   notes?: string;
 }
 
