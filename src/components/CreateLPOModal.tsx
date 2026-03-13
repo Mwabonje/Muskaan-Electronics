@@ -12,7 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, PurchaseOrder } from '../db/db';
 import { useAuth } from '../context/AuthContext';
 
 interface CartItem {
@@ -25,9 +25,10 @@ interface CartItem {
 interface CreateLPOModalProps {
   isOpen: boolean;
   onClose: () => void;
+  editingLPO?: PurchaseOrder | null;
 }
 
-export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps) {
+export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLPOModalProps) {
   const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   
@@ -46,16 +47,32 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setStep('form');
-      setCreatedLPOId(null);
-      setError(null);
-      setFilter('ALL');
-      setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
-      setSupplierName('');
-      setExpectedDeliveryDate('');
-      setNotes('');
+      if (editingLPO) {
+        setStep('form');
+        setCreatedLPOId(editingLPO.id || null);
+        setError(null);
+        setFilter('ALL');
+        setCartItems(editingLPO.items.map(item => ({
+          id: crypto.randomUUID(),
+          productId: item.productId,
+          price: item.price,
+          quantity: item.quantity
+        })));
+        setSupplierName(editingLPO.supplierName);
+        setExpectedDeliveryDate(editingLPO.expectedDeliveryDate || '');
+        setNotes(editingLPO.notes || '');
+      } else {
+        setStep('form');
+        setCreatedLPOId(null);
+        setError(null);
+        setFilter('ALL');
+        setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+        setSupplierName('');
+        setExpectedDeliveryDate('');
+        setNotes('');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, editingLPO]);
 
   if (!isOpen) return null;
 
@@ -122,8 +139,7 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
     }
 
     try {
-      // Create LPO record
-      const lpoId = await db.purchaseOrders.add({
+      const lpoData = {
         items: validItems.map(item => {
           const product = products.find(p => p.id === Number(item.productId));
           return {
@@ -136,25 +152,33 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
         }),
         totalAmount: grandTotal,
         supplierName,
-        date: new Date().toISOString(),
+        date: editingLPO ? editingLPO.date : new Date().toISOString(),
         expectedDeliveryDate: expectedDeliveryDate || undefined,
         notes: notes || undefined,
-        status: 'Pending'
-      });
+        status: 'Pending' as const,
+        rejectionReason: undefined // Clear any previous rejection reason
+      };
 
+      let lpoId: number;
+      if (editingLPO && editingLPO.id) {
+        await db.purchaseOrders.update(editingLPO.id, lpoData);
+        lpoId = editingLPO.id;
+      } else {
+        lpoId = await db.purchaseOrders.add(lpoData) as number;
+      }
 
       // Log activity
       await db.activities.add({
         userId: user?.id || 0,
         userName: user?.name || 'System',
-        userRole: user?.role || 'Cashier',
-        type: 'LPO Created',
-        description: `Created a new LPO for ${supplierName} (Total: Ksh ${grandTotal.toLocaleString()})`,
+        userRole: user?.role || 'Manager',
+        type: editingLPO ? 'LPO Created' : 'LPO Created', // Maybe 'LPO Updated' but 'Created' usually works for resubmission logs
+        description: `${editingLPO ? 'Updated and resubmitted' : 'Created a new'} LPO for ${supplierName} (Total: Ksh ${grandTotal.toLocaleString()})`,
         date: new Date().toISOString(),
-        referenceId: lpoId as number
+        referenceId: lpoId
       });
 
-      setCreatedLPOId(lpoId as number);
+      setCreatedLPOId(lpoId);
       setStep('preview');
     } catch (err) {
       console.error("Failed to generate LPO:", err);
@@ -301,7 +325,9 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
       <div className="relative w-full max-w-2xl bg-[#0B1120] rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a]">
-          <h2 className="text-lg font-bold text-white">Create Purchase Order (LPO)</h2>
+          <h2 className="text-lg font-bold text-white">
+            {editingLPO ? `Edit / Resubmit LPO-${editingLPO.id?.toString().padStart(4, '0')}` : 'Create Purchase Order (LPO)'}
+          </h2>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -480,7 +506,7 @@ export default function CreateLPOModal({ isOpen, onClose }: CreateLPOModalProps)
             onClick={handleConfirmLPO}
             className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-purple-900/20"
           >
-            <FileText className="w-4 h-4" /> Generate LPO
+            <FileText className="w-4 h-4" /> {editingLPO ? 'Resubmit LPO' : 'Generate LPO'}
           </button>
         </div>
       </div>

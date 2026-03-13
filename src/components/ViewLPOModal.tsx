@@ -1,5 +1,4 @@
-import React from 'react';
-import { X, Printer, FileText, Building2, Calendar, ClipboardList } from 'lucide-react';
+import { X, Printer, FileText, Building2, Calendar, ClipboardList, XCircle } from 'lucide-react';
 import { PurchaseOrder } from '../db/db';
 
 interface ViewLPOModalProps {
@@ -137,6 +136,16 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
             <div className="pt-8 border-t border-slate-200 mt-8">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Notes & Instructions</h3>
               <p className="text-sm text-slate-600 whitespace-pre-wrap">{lpo.notes}</p>
+            </div>
+          )}
+
+          {/* Rejection Reason */}
+          {lpo.status === 'Rejected' && lpo.rejectionReason && (
+            <div className="pt-8 border-t border-rose-200 mt-8 bg-rose-50 -mx-8 px-8 py-6">
+              <h3 className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <XCircle className="w-4 h-4" /> Rejection Reason
+              </h3>
+              <p className="text-sm text-rose-700 font-medium whitespace-pre-wrap">{lpo.rejectionReason}</p>
             </div>
           )}
 

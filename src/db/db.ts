@@ -63,8 +63,9 @@ export interface PurchaseOrder {
   supplierName: string;
   date: string;
   expectedDeliveryDate?: string;
-  status: 'Pending' | 'Approved' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Approved' | 'Delivered' | 'Cancelled' | 'Rejected';
   notes?: string;
+  rejectionReason?: string;
 }
 
 export type LPO = PurchaseOrder;
@@ -123,7 +124,7 @@ export interface Activity {
   userId: number;
   userName: string;
   userRole: Role;
-  type: 'Sale' | 'Quote' | 'LPO Created' | 'LPO Approved' | 'Delivery' | 'Return' | 'Stock Adjustment';
+  type: 'Sale' | 'Quote' | 'LPO Created' | 'LPO Approved' | 'LPO Rejected' | 'Delivery' | 'Return' | 'Stock Adjustment';
   description: string;
   date: string;
   referenceId?: number;

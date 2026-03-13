@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, PurchaseOrder } from '../db/db';
-import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye, CheckCircle2 } from 'lucide-react';
+import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle, Edit3 } from 'lucide-react';
 import ViewLPOModal from '../components/ViewLPOModal';
+import CreateLPOModal from '../components/CreateLPOModal';
 import { useAuth } from '../context/AuthContext';
 
 export default function PurchaseOrders() {
@@ -12,6 +13,7 @@ export default function PurchaseOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLPO, setSelectedLPO] = useState<PurchaseOrder | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const itemsPerPage = 15;
   const isAdmin = role === 'Super Admin' || role === 'Manager';
 
@@ -35,14 +37,14 @@ export default function PurchaseOrders() {
     if (!isAdmin) return;
     if (confirm('Are you sure you want to approve this purchase order?')) {
       try {
-        await db.purchaseOrders.update(id, { status: 'Approved' });
+        await db.purchaseOrders.update(id, { status: 'Approved', rejectionReason: undefined });
         
         // Log activity
         const lpo = lpos.find(l => l.id === id);
         await db.activities.add({
           userId: user?.id || 0,
           userName: user?.name || 'System',
-          userRole: user?.role || 'Admin',
+          userRole: role || 'Admin',
           type: 'LPO Approved',
           description: `Approved LPO for ${lpo?.supplierName || 'Unknown'} (Total: Ksh ${lpo?.totalAmount.toLocaleString() || '0'})`,
           date: new Date().toISOString(),
@@ -51,6 +53,36 @@ export default function PurchaseOrders() {
       } catch (error) {
         console.error("Failed to approve LPO:", error);
       }
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    if (!isAdmin) return;
+    const reason = prompt('Please enter the reason for rejection:');
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert('A reason is required to reject an LPO.');
+      return;
+    }
+
+    try {
+      await db.purchaseOrders.update(id, { 
+        status: 'Rejected',
+        rejectionReason: reason 
+      });
+      
+      const lpo = lpos.find(l => l.id === id);
+      await db.activities.add({
+        userId: user?.id || 0,
+        userName: user?.name || 'System',
+        userRole: role || 'Admin',
+        type: 'LPO Rejected',
+        description: `Rejected LPO for ${lpo?.supplierName || 'Unknown'}. Reason: ${reason}`,
+        date: new Date().toISOString(),
+        referenceId: id
+      });
+    } catch (error) {
+      console.error("Failed to reject LPO:", error);
     }
   };
 
@@ -161,7 +193,8 @@ export default function PurchaseOrders() {
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       lpo.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500' :
                       lpo.status === 'Delivered' ? 'bg-blue-500/10 text-blue-500' :
-                      lpo.status === 'Cancelled' ? 'bg-rose-500/10 text-rose-500' :
+                      lpo.status === 'Rejected' ? 'bg-rose-500/10 text-rose-500' :
+                      lpo.status === 'Cancelled' ? 'bg-slate-500/10 text-slate-500' :
                       'bg-amber-500/10 text-amber-500'
                     }`}>
                       {lpo.status}
@@ -170,12 +203,33 @@ export default function PurchaseOrders() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       {isAdmin && lpo.status === 'Pending' && (
+                        <>
+                          <button 
+                            onClick={() => handleApprove(lpo.id!)}
+                            className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                            title="Approve LPO"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleReject(lpo.id!)}
+                            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                            title="Reject LPO"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {(lpo.status === 'Rejected' || lpo.status === 'Pending') && (
                         <button 
-                          onClick={() => handleApprove(lpo.id!)}
-                          className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
-                          title="Approve LPO"
+                          onClick={() => {
+                            setSelectedLPO(lpo);
+                            setIsEditModalOpen(true);
+                          }}
+                          className="p-2 text-slate-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors"
+                          title="Edit / Resubmit LPO"
                         >
-                          <CheckCircle2 className="w-4 h-4" />
+                          <Edit3 className="w-4 h-4" />
                         </button>
                       )}
                       <button 
@@ -231,6 +285,12 @@ export default function PurchaseOrders() {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         lpo={selectedLPO}
+      />
+
+      <CreateLPOModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        editingLPO={selectedLPO}
       />
     </div>
   );
