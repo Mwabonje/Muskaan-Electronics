@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MonitorSmartphone, User, Lock, LogIn, Eye, EyeOff, Users } from 'lucide-react';
 import { db } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { insforge } from '../lib/insforge';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,7 +19,18 @@ export default function Login() {
     setError('');
     
     try {
-      const user = await db.users.where('email').equalsIgnoreCase(email).first();
+      // Find user in InsForge cloud database
+      const { data: users, error: fetchError } = await insforge
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .limit(1);
+      
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
+      const user = users && users.length > 0 ? users[0] : null;
       
       if (user) {
         if (user.password !== password) {
@@ -37,8 +49,11 @@ export default function Login() {
           return;
         }
         
-        // Update last login
-        await db.users.update(user.id!, { lastLogin: 'Just now' });
+        // Update last login in cloud
+        await insforge
+          .from('users')
+          .update({ last_login: 'Just now' })
+          .eq('id', user.id);
         
         login(user);
         navigate('/dashboard');

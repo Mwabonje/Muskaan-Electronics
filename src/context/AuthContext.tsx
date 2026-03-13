@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db, type User, type Role } from '../db/db';
+import { insforge } from '../lib/insforge';
 
 interface AuthContextType {
   user: User | null;
@@ -20,7 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUserId = localStorage.getItem('auth_user_id');
       if (storedUserId) {
         try {
-          const foundUser = await db.users.get(Number(storedUserId));
+          const { data: users, error } = await insforge
+            .from('users')
+            .select('*')
+            .eq('id', Number(storedUserId))
+            .limit(1);
+
+          const foundUser = users && users.length > 0 ? users[0] : null;
+
           if (foundUser && foundUser.status === 'Active') {
             setUser(foundUser);
           } else {
