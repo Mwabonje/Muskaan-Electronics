@@ -250,7 +250,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                 <p className="text-sm text-slate-500 font-medium mt-1">Goods Received Note</p>
               </div>
               <div className="text-right">
-                <h2 className="text-xl font-bold text-blue-600">HARDWARE STORE</h2>
+                <h2 className="text-xl font-bold text-blue-600">MUSKAAN ELECTRONICS</h2>
                 <p className="text-sm text-slate-600 mt-1">123 Main Street, City</p>
                 <p className="text-sm text-slate-600">Tel: +254 700 000 000</p>
               </div>

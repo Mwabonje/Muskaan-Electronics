@@ -323,7 +323,7 @@ export default function POS() {
             {/* Receipt Body */}
             <div className="flex-1 overflow-y-auto p-8 bg-white text-slate-900 print:overflow-visible print:p-4">
               <div className="text-center mb-6">
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">HARDWARE STORE</h1>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">MUSKAAN ELECTRONICS</h1>
                 <p className="text-sm text-slate-600 mt-1">123 Main Street, City</p>
                 <p className="text-sm text-slate-600">Tel: +254 700 000 000</p>
                 <p className="text-sm text-slate-600 mt-2">Receipt #: {createdSaleId}</p>
