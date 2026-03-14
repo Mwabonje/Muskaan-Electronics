@@ -15,6 +15,7 @@ export default function PurchaseOrders() {
   const [selectedLPO, setSelectedLPO] = useState<PurchaseOrder | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const itemsPerPage = 15;
   const isAdmin = role === 'Super Admin' || role === 'Manager';
 
@@ -165,6 +166,13 @@ export default function PurchaseOrders() {
           >
             <Download className="w-4 h-4" />
             Export
+          </button>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-purple-900/20"
+          >
+            <ClipboardList className="w-4 h-4" />
+            Create LPO
           </button>
         </div>
       </div>
@@ -323,8 +331,13 @@ export default function PurchaseOrders() {
 
       <CreateLPOModal 
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => { setIsEditModalOpen(false); fetchLPOs(); }}
         editingLPO={selectedLPO}
+      />
+
+      <CreateLPOModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => { setIsCreateModalOpen(false); fetchLPOs(); }}
       />
     </div>
   );
