@@ -162,7 +162,7 @@ export default function Layout() {
               <Bell className="w-4 h-4" />
             </button>
             <div className="hidden sm:flex items-center text-sm text-slate-400 font-mono">
-              Mar 11, 2026
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
         </header>

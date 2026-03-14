@@ -1,15 +1,38 @@
-import { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useMemo, useEffect } from 'react';
 import { db } from '../db/db';
-import { BarChart3, TrendingUp, Package, Users, Download, Calendar, RotateCcw } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { BarChart3, TrendingUp, Package, Download, Calendar, RotateCcw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function Reports() {
   const [dateRange, setDateRange] = useState('month'); // 'today', 'week', 'month', 'year', 'all'
-  
-  const sales = useLiveQuery(() => db.sales.toArray(), []) || [];
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
-  const returns = useLiveQuery(() => db.returns.toArray(), []) || [];
+  const [sales, setSales] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [returns, setReturns] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [{ data: salesData }, { data: productsData }, { data: returnsData }] = await Promise.all([
+        supabase.from('sales').select('*'),
+        supabase.from('products').select('*'),
+        supabase.from('returns').select('*')
+      ]);
+
+      setSales(salesData || []);
+      setProducts(productsData || []);
+      setReturns(returnsData || []);
+    } catch (err) {
+      console.error('Failed to fetch report data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Filter data based on date range
   const filterByDate = (items: any[]) => {
@@ -40,23 +63,23 @@ export default function Reports() {
   const filteredReturns = filterByDate(returns);
 
   // Calculate metrics
-  const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
-  const totalRefunds = filteredReturns.reduce((sum, ret) => sum + ret.totalRefund, 0);
+  const totalRevenue = filteredSales.reduce((sum, sale) => sum + (Number(sale.total_amount) || 0), 0);
+  const totalRefunds = filteredReturns.reduce((sum, ret) => sum + (Number(ret.total_refund) || 0), 0);
   const netRevenue = totalRevenue - totalRefunds;
   
   const totalSalesCount = filteredSales.length;
   const totalReturnsCount = filteredReturns.length;
   
   const totalItemsSold = filteredSales.reduce((sum, sale) => 
-    sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+    sum + (sale.items?.reduce((itemSum: number, item: any) => itemSum + (Number(item.quantity) || 0), 0) || 0), 0);
 
-  // Calculate profit (assuming costPrice is available, otherwise this is just revenue)
+  // Calculate profit
   const totalProfit = filteredSales.reduce((sum, sale) => {
-    return sum + sale.items.reduce((itemSum, item) => {
-      const product = products.find(p => p.id === item.productId);
-      const cost = product ? product.costPrice : 0;
-      return itemSum + ((item.price - cost) * item.quantity);
-    }, 0);
+    return sum + (sale.items?.reduce((itemSum: number, item: any) => {
+      const product = products.find(p => p.id === Number(item.product_id));
+      const cost = product ? (Number(product.cost_price) || 0) : 0;
+      return itemSum + (((Number(item.price) || 0) - cost) * (Number(item.quantity) || 0));
+    }, 0) || 0);
   }, 0);
 
   const formatPrice = (price: number) => {
@@ -94,12 +117,13 @@ export default function Reports() {
     const productSales: Record<number, { name: string; quantity: number; revenue: number }> = {};
     
     filteredSales.forEach(sale => {
-      sale.items.forEach(item => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = { name: item.name, quantity: 0, revenue: 0 };
+      sale.items?.forEach((item: any) => {
+        const prodId = Number(item.product_id);
+        if (!productSales[prodId]) {
+          productSales[prodId] = { name: item.name, quantity: 0, revenue: 0 };
         }
-        productSales[item.productId].quantity += item.quantity;
-        productSales[item.productId].revenue += item.quantity * item.price;
+        productSales[prodId].quantity += (Number(item.quantity) || 0);
+        productSales[prodId].revenue += (Number(item.quantity) || 0) * (Number(item.price) || 0);
       });
     });
 
@@ -155,7 +179,7 @@ export default function Reports() {
       }
       
       if (trend[key] !== undefined) {
-        trend[key] += sale.totalAmount;
+        trend[key] += (Number(sale.total_amount) || 0);
       }
     });
 
@@ -199,109 +223,117 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-slate-400 text-sm font-medium">Net Revenue</h3>
-            <div className="p-2 bg-emerald-500/10 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white">{formatPrice(netRevenue)}</p>
-          <p className="text-xs text-slate-500 mt-2">Gross: {formatPrice(totalRevenue)}</p>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+          <p>Loading analytics data...</p>
         </div>
-
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-slate-400 text-sm font-medium">Estimated Profit</h3>
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <BarChart3 className="w-5 h-5 text-blue-500" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white">{formatPrice(totalProfit)}</p>
-          <p className="text-xs text-slate-500 mt-2">Based on cost prices</p>
-        </div>
-
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-slate-400 text-sm font-medium">Items Sold</h3>
-            <div className="p-2 bg-purple-500/10 rounded-lg">
-              <Package className="w-5 h-5 text-purple-500" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white">{totalItemsSold}</p>
-          <p className="text-xs text-slate-500 mt-2">Across {totalSalesCount} transactions</p>
-        </div>
-
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-slate-400 text-sm font-medium">Refunds</h3>
-            <div className="p-2 bg-rose-500/10 rounded-lg">
-              <RotateCcw className="w-5 h-5 text-rose-500" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white">{formatPrice(totalRefunds)}</p>
-          <p className="text-xs text-slate-500 mt-2">{totalReturnsCount} return transactions</p>
-        </div>
-      </div>
-
-      {/* Detailed Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products */}
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Top Selling Products (Revenue)</h3>
-          <div className="h-64">
-            {topProductsData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProductsData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                  <XAxis type="number" stroke="#64748b" tickFormatter={(value) => `Ksh ${value}`} />
-                  <YAxis dataKey="name" type="category" stroke="#64748b" width={100} tick={{ fontSize: 12 }} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc' }}
-                    itemStyle={{ color: '#3b82f6' }}
-                    formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
-                  />
-                  <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <Package className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm">No sales data available for this period.</p>
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-400 text-sm font-medium">Net Revenue</h3>
+                <div className="p-2 bg-emerald-500/10 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+              <p className="text-2xl font-bold text-white">{formatPrice(netRevenue)}</p>
+              <p className="text-xs text-slate-500 mt-2">Gross: {formatPrice(totalRevenue)}</p>
+            </div>
 
-        {/* Sales Trend */}
-        <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">Sales Trend (Revenue)</h3>
-          <div className="h-64">
-            {salesTrendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="#64748b" tickFormatter={(value) => `Ksh ${value}`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc' }}
-                    itemStyle={{ color: '#10b981' }}
-                    formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <TrendingUp className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm">No sales trend data available for this period.</p>
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-400 text-sm font-medium">Estimated Profit</h3>
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                </div>
               </div>
-            )}
+              <p className="text-2xl font-bold text-white">{formatPrice(totalProfit)}</p>
+              <p className="text-xs text-slate-500 mt-2">Based on cost prices</p>
+            </div>
+
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-400 text-sm font-medium">Items Sold</h3>
+                <div className="p-2 bg-purple-500/10 rounded-lg">
+                  <Package className="w-5 h-5 text-purple-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-white">{totalItemsSold}</p>
+              <p className="text-xs text-slate-500 mt-2">Across {totalSalesCount} transactions</p>
+            </div>
+
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-400 text-sm font-medium">Refunds</h3>
+                <div className="p-2 bg-rose-500/10 rounded-lg">
+                  <RotateCcw className="w-5 h-5 text-rose-500" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-white">{formatPrice(totalRefunds)}</p>
+              <p className="text-xs text-slate-500 mt-2">{totalReturnsCount} return transactions</p>
+            </div>
           </div>
-        </div>
-      </div>
+
+          {/* Detailed Sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Top Products */}
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Top Selling Products (Revenue)</h3>
+              <div className="h-64">
+                {topProductsData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProductsData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                      <XAxis type="number" stroke="#64748b" tickFormatter={(value) => `Ksh ${value}`} />
+                      <YAxis dataKey="name" type="category" stroke="#64748b" width={100} tick={{ fontSize: 12 }} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc' }}
+                        itemStyle={{ color: '#3b82f6' }}
+                        formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
+                      />
+                      <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                    <Package className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm">No sales data available for this period.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sales Trend */}
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Sales Trend (Revenue)</h3>
+              <div className="h-64">
+                {salesTrendData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={salesTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} />
+                      <YAxis stroke="#64748b" tickFormatter={(value) => `Ksh ${value}`} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f8fafc' }}
+                        itemStyle={{ color: '#10b981' }}
+                        formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
+                      />
+                      <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                    <TrendingUp className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm">No sales trend data available for this period.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

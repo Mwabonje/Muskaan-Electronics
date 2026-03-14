@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type User, type Role } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 
 export default function Users() {
   const { role: currentUserRole } = useAuth();
-  const users = useLiveQuery(() => db.users.toArray(), []) || [];
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,7 +16,6 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   
-  // New User Form State
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -22,6 +23,27 @@ export default function Users() {
     role: 'Cashier' as Role,
     password: ''
   });
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('id', { ascending: true });
+      
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,16 +53,27 @@ export default function Users() {
       password: formData.password,
       role: formData.role,
       status: 'Active' as const,
-      lastLogin: 'Never'
+      last_login: 'Never'
     };
     
-    await db.users.add(newUser);
+    const { error } = await supabase.from('users').insert([newUser]);
+    if (error) {
+      alert("Failed to create user: " + error.message);
+      return;
+    }
+
     setIsModalOpen(false);
     setFormData({ firstName: '', lastName: '', email: '', role: 'Cashier', password: '' });
+    fetchUsers();
   };
 
   const handleDeleteUser = async (id: number) => {
-    await db.users.delete(id);
+    const { error } = await supabase.from('users').delete().eq('id', id);
+    if (error) {
+      alert("Failed to delete user: " + error.message);
+      return;
+    }
+    fetchUsers();
   };
 
   const filteredUsers = users.filter(user => {
@@ -153,7 +186,7 @@ export default function Users() {
                       {user.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">{user.lastLogin}</td>
+                  <td className="px-6 py-4 text-slate-500 text-sm">{user.last_login}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">

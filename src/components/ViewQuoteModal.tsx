@@ -1,11 +1,10 @@
 import React from 'react';
-import { X, Printer, FileText, Building2, User, Calendar, Tag } from 'lucide-react';
-import { Quote } from '../db/db';
+import { X, Printer, FileText, User, Calendar, Tag } from 'lucide-react';
 
 interface ViewQuoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  quote: Quote | null;
+  quote: any | null;
 }
 
 export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModalProps) {
@@ -13,6 +12,12 @@ export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModa
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const formatPrice = (priceStr: string | number) => {
+    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(String(priceStr).replace(/[^0-9.-]+/g, '')) || 0;
+    return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -70,7 +75,7 @@ export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModa
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quote To</p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
                   <User className="w-4 h-4 text-slate-400" />
-                  {quote.customerName || 'Walk-in Customer'}
+                  {quote.customer_name || 'Walk-in Customer'}
                 </div>
               </div>
             </div>
@@ -108,12 +113,12 @@ export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModa
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {quote.items.map((item, index) => (
+                {quote.items.map((item: any, index: number) => (
                   <tr key={index} className="group hover:bg-slate-50 transition-colors">
                     <td className="py-4 px-4 text-sm font-medium text-slate-800">{item.name}</td>
                     <td className="py-4 px-4 text-sm text-slate-600 text-center">{item.quantity}</td>
-                    <td className="py-4 px-4 text-sm text-slate-600 text-right">Ksh {item.price.toLocaleString()}</td>
-                    <td className="py-4 px-4 text-sm font-bold text-slate-800 text-right">Ksh {item.subtotal.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-sm text-slate-600 text-right">{formatPrice(item.price)}</td>
+                    <td className="py-4 px-4 text-sm font-bold text-slate-800 text-right">{formatPrice(item.subtotal)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -125,12 +130,11 @@ export default function ViewQuoteModal({ isOpen, onClose, quote }: ViewQuoteModa
             <div className="w-64 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500 font-medium">Subtotal</span>
-                <span className="text-slate-800 font-bold">Ksh {quote.totalAmount.toLocaleString()}</span>
+                <span className="text-slate-800 font-bold">{formatPrice(quote.total_amount)}</span>
               </div>
-              {/* Assuming no tax for now, or you can add it if needed */}
               <div className="flex justify-between items-center pt-3 border-t-2 border-slate-800">
                 <span className="text-sm font-black text-slate-900 uppercase tracking-wider">Total</span>
-                <span className="text-xl font-black text-blue-600">Ksh {quote.totalAmount.toLocaleString()}</span>
+                <span className="text-xl font-black text-blue-600">{formatPrice(quote.total_amount)}</span>
               </div>
             </div>
           </div>

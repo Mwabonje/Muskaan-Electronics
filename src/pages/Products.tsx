@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Plus, Upload, Edit, Trash2, ChevronLeft, ChevronRight, Filter, ChevronDown, History } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Product } from '../db/db';
+import { supabase } from '../lib/supabase';
 import ProductDetailsModal from '../components/ProductDetailsModal';
 import ConfirmModal from '../components/ConfirmModal';
 
 export default function Products() {
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialTab, setInitialTab] = useState<'details' | 'history'>('details');
@@ -20,6 +21,27 @@ export default function Products() {
   const [brandFilter, setBrandFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const categories = ['All', ...Array.from(new Set(products.map(p => p.category)))];
   const brands = ['All', ...Array.from(new Set(products.map(p => p.brand)))];
@@ -161,8 +183,8 @@ export default function Products() {
                       {product.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.cost)}</td>
-                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.selling)}</td>
+                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.cost_price)}</td>
+                  <td className="px-6 py-4 text-slate-600 text-sm font-mono whitespace-nowrap">{formatPrice(product.selling_price)}</td>
                   <td className="px-6 py-4 text-slate-600 text-sm font-semibold">{product.stock}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${
@@ -255,7 +277,10 @@ export default function Products() {
 
       <ProductDetailsModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => {
+          setIsModalOpen(false);
+          fetchProducts(); // Refresh list after close
+        }} 
         product={selectedProduct} 
         initialTab={initialTab}
       />
@@ -267,9 +292,23 @@ export default function Products() {
         confirmText="Delete"
         cancelText="Cancel"
         isDestructive={true}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (productToDelete?.id) {
-            db.products.delete(productToDelete.id);
+            try {
+              const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', productToDelete.id);
+              
+              if (error) throw error;
+              
+              setIsConfirmModalOpen(false);
+              setProductToDelete(null);
+              fetchProducts();
+            } catch (err) {
+              console.error("Failed to delete product:", err);
+              alert("Failed to delete product. It might be referenced by sales or other records.");
+            }
           }
         }}
         onCancel={() => {

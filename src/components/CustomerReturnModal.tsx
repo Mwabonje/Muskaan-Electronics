@@ -12,13 +12,13 @@ import {
   RotateCcw,
   AlertTriangle
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface CartItem {
   id: string;
-  productId: number | '';
+  product_id: number | '';
   price: number | '';
   quantity: number | '';
 }
@@ -30,11 +30,31 @@ interface CustomerReturnModalProps {
 
 export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnModalProps) {
   const { user } = useAuth();
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+    }
+  }, [isOpen]);
   
   const [filter, setFilter] = useState('ALL');
   const [cartItems, setCartItems] = useState<CartItem[]>([
-    { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }
+    { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }
   ]);
   const [customerName, setCustomerName] = useState('');
   const [reason, setReason] = useState('');
@@ -51,7 +71,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
       setCreatedReturnId(null);
       setError(null);
       setFilter('ALL');
-      setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+      setCartItems([{ id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
       setCustomerName('');
       setReason('');
       setCondition('Good');
@@ -61,7 +81,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
   if (!isOpen) return null;
 
   const handleAddItem = () => {
-    setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+    setCartItems([...cartItems, { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
     setError(null);
   };
 
@@ -78,10 +98,10 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         // Auto-fill price when product is selected
-        if (field === 'productId' && value !== '') {
+        if (field === 'product_id' && value !== '') {
           const product = products.find(p => p.id === Number(value));
           if (product) {
-            const priceString = String(product.selling).replace(/[^0-9.-]+/g,"");
+            const priceString = String(product.selling_price).replace(/[^0-9.-]+/g,"");
             updatedItem.price = Number(priceString);
           }
         }
@@ -106,13 +126,13 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
     return true;
   });
 
-  const validItemsCount = cartItems.filter(item => item.productId !== '').length;
+  const validItemsCount = cartItems.filter(item => item.product_id !== '').length;
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmReturn = async () => {
     setError(null);
     // Basic validation
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
       setError("Please add at least one valid item.");
       return;
@@ -128,61 +148,65 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
 
     try {
       // Create Return record
-      const returnId = await db.returns.add({
+      const returnData = {
         items: validItems.map(item => {
-          const product = products.find(p => p.id === Number(item.productId));
+          const product = products.find(p => p.id === Number(item.product_id));
           return {
-            productId: Number(item.productId),
+            product_id: Number(item.product_id),
             name: product?.name || 'Unknown Item',
             quantity: Number(item.quantity),
             price: Number(item.price),
             subtotal: Number(item.quantity) * Number(item.price)
           };
         }),
-        totalRefund,
-        customerName,
+        total_refund: totalRefund,
+        customer_name: customerName,
         reason,
         condition,
         date: new Date().toISOString()
-      });
+      };
+
+      const { data: returnDataResponse, error: returnError } = await supabase.from('returns').insert([returnData]).select();
+      if (returnError) throw returnError;
+      const returnId = returnDataResponse[0].id;
 
       // Update inventory stock (Increase) ONLY if condition is Good
       if (condition === 'Good') {
         for (const item of validItems) {
-          const product = products.find(p => p.id === Number(item.productId));
+          const product = products.find(p => p.id === Number(item.product_id));
           if (product) {
             const qty = Number(item.quantity);
             const newStock = product.stock + qty;
-            const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.minStock || 5) ? 'Low Stock' : 'In Stock';
-            await db.products.update(product.id!, { stock: newStock, status });
+            const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.min_stock || 5) ? 'Low Stock' : 'In Stock';
             
-            await db.stockHistory.add({
-              productId: product.id!,
-              changeType: 'Return',
-              quantityChange: qty,
-              previousStock: product.stock,
-              newStock: newStock,
+            const { error: productError } = await supabase.from('products').update({ stock: newStock, status }).eq('id', product.id);
+            if (productError) throw productError;
+            
+            await supabase.from('stock_history').insert([{
+              product_id: product.id,
+              change_type: 'Return',
+              quantity_change: qty,
+              previous_stock: product.stock,
+              new_stock: newStock,
               date: new Date().toISOString(),
               reason: `Return #${returnId}`
-            });
+            }]);
           }
         }
       }
 
-
-
       // Log activity
-      await db.activities.add({
-        userId: user?.id || 0,
-        userName: user?.name || 'System',
-        userRole: user?.role || 'Cashier',
+      await supabase.from('activities').insert([{
+        user_id: user?.id || 0,
+        user_name: user?.name || 'System',
+        user_role: user?.role || 'Cashier',
         type: 'Return',
         description: `Processed a return of ${validItems.length} items from ${customerName} (Total Refund: Ksh ${totalRefund.toLocaleString()})`,
         date: new Date().toISOString(),
-        referenceId: returnId as number
-      });
+        reference_id: returnId
+      }]);
 
-      setCreatedReturnId(returnId as number);
+      setCreatedReturnId(returnId);
       setStep('preview');
     } catch (err) {
       console.error("Failed to process return:", err);
@@ -195,7 +219,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
   };
 
   if (step === 'preview') {
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
@@ -263,7 +287,7 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {validItems.map(item => {
-                  const product = products.find(p => p.id === Number(item.productId));
+                  const product = products.find(p => p.id === Number(item.product_id));
                   const price = Number(item.price);
                   const qty = Number(item.quantity);
                   return (
@@ -433,13 +457,13 @@ export default function CustomerReturnModal({ isOpen, onClose }: CustomerReturnM
                     <div className="flex-1 space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item</label>
                       <select 
-                        value={item.productId}
-                        onChange={(e) => handleItemChange(item.id, 'productId', e.target.value ? Number(e.target.value) : '')}
+                        value={item.product_id}
+                        onChange={(e) => handleItemChange(item.id, 'product_id', e.target.value ? Number(e.target.value) : '')}
                         className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-rose-500 focus:border-rose-500 outline-none appearance-none"
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Sold at Ksh {formatPrice(p.selling)}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Sold at Ksh {formatPrice(p.selling_price)}</option>
                         ))}
                       </select>
                     </div>

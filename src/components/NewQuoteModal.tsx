@@ -11,14 +11,14 @@ import {
   Box,
   Shield
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Quote } from '../db/db';
+import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import ViewQuoteModal from './ViewQuoteModal';
 
 interface CartItem {
   id: string;
-  productId: number | '';
+  product_id: number | '';
   price: number | '';
   quantity: number | '';
 }
@@ -30,24 +30,34 @@ interface NewQuoteModalProps {
 
 export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   const { user } = useAuth();
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [products, setProducts] = useState<any[]>([]);
   
   const [filter, setFilter] = useState('ALL');
   const [cartItems, setCartItems] = useState<CartItem[]>([
-    { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }
+    { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }
   ]);
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
   const [discountValue, setDiscountValue] = useState<number | ''>(0);
   const [customerName, setCustomerName] = useState('');
   const [notes, setNotes] = useState('');
-  const [generatedQuote, setGeneratedQuote] = useState<Quote | null>(null);
+  const [generatedQuote, setGeneratedQuote] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Reset state when modal opens
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
+      fetchProducts();
       setFilter('ALL');
-      setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+      setCartItems([{ id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
       setDiscountType('percent');
       setDiscountValue(0);
       setCustomerName('');
@@ -60,7 +70,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   if (!isOpen) return null;
 
   const handleAddItem = () => {
-    setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+    setCartItems([...cartItems, { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
     setError(null);
   };
 
@@ -76,12 +86,10 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
     setCartItems(cartItems.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        // Auto-fill price when product is selected
-        if (field === 'productId' && value !== '') {
+        if (field === 'product_id' && value !== '') {
           const product = products.find(p => p.id === Number(value));
           if (product) {
-            // Remove any commas or currency symbols from selling price
-            const priceString = String(product.selling).replace(/[^0-9.-]+/g,"");
+            const priceString = String(product.selling_price).replace(/[^0-9.-]+/g,"");
             updatedItem.price = Number(priceString);
           }
         }
@@ -91,7 +99,6 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
     }));
   };
 
-  // Calculations
   const subtotal = cartItems.reduce((sum, item) => {
     const price = Number(item.price) || 0;
     const qty = Number(item.quantity) || 0;
@@ -112,50 +119,50 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
     return true;
   });
 
-  const validItemsCount = cartItems.filter(item => item.productId !== '').length;
+  const validItemsCount = cartItems.filter(item => item.product_id !== '').length;
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmQuote = async () => {
     setError(null);
-    // Basic validation
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
       setError("Please add at least one valid item.");
       return;
     }
 
     try {
-      // Create quote record
-      const newQuote: Quote = {
+      const newQuote: any = {
         items: validItems.map(item => {
-          const product = products.find(p => p.id === Number(item.productId));
+          const product = products.find(p => p.id === Number(item.product_id));
           return {
-            productId: Number(item.productId),
+            product_id: Number(item.product_id),
             name: product?.name || 'Unknown Item',
             quantity: Number(item.quantity),
             price: Number(item.price),
             subtotal: Number(item.quantity) * Number(item.price)
           };
         }),
-        totalAmount: grandTotal,
+        total_amount: grandTotal,
         date: new Date().toISOString(),
-        customerName: customerName || undefined,
-        notes: notes || undefined,
+        customer_name: customerName || null,
+        notes: notes || null,
         status: 'Pending'
       };
       
-      const id = await db.quotes.add(newQuote);
-      newQuote.id = id as number;
+      const { data: quoteData, error: quoteError } = await supabase.from('quotes').insert(newQuote).select();
+      if (quoteError) throw quoteError;
+      
+      const id = quoteData[0].id;
+      newQuote.id = id;
 
-      // Log activity
-      await db.activities.add({
-        userId: user?.id || 0,
-        userName: user?.name || 'System',
-        userRole: user?.role || 'Cashier',
+      await supabase.from('activities').insert({
+        user_id: user?.id || 0,
+        user_name: user?.name || 'System',
+        user_role: user?.role || 'Admin',
         type: 'Quote',
         description: `Generated a quote of Ksh ${grandTotal.toLocaleString()}${customerName ? ` for ${customerName}` : ''}`,
         date: new Date().toISOString(),
-        referenceId: id as number
+        reference_id: id
       });
 
       setGeneratedQuote(newQuote);
@@ -171,7 +178,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
 
   const formatPrice = (priceStr: string | number) => {
     if (typeof priceStr === 'number') return priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    const num = parseFloat(String(priceStr).replace(/[^0-9.-]+/g, '')) || 0;
     return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -235,13 +242,13 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
                     <div className="flex-1 space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item</label>
                       <select 
-                        value={item.productId}
-                        onChange={(e) => handleItemChange(item.id, 'productId', e.target.value ? Number(e.target.value) : '')}
+                        value={item.product_id}
+                        onChange={(e) => handleItemChange(item.id, 'product_id', e.target.value ? Number(e.target.value) : '')}
                         className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none"
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Ksh {formatPrice(p.selling)}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Ksh {formatPrice(p.selling_price)}</option>
                         ))}
                       </select>
                     </div>

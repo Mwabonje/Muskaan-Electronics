@@ -1,10 +1,9 @@
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Quote } from '../db/db';
+import { useState, useEffect } from 'react';
+import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 import { 
   FileText, 
   Search, 
-  Filter, 
   Download, 
   Eye, 
   CheckCircle, 
@@ -14,14 +13,32 @@ import {
 import ViewQuoteModal from '../components/ViewQuoteModal';
 
 export default function Quotes() {
-  const quotes = useLiveQuery(() => db.quotes.reverse().toArray(), []) || [];
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [selectedQuote, setSelectedQuote] = useState<any | null>(null);
+
+  const fetchQuotes = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from('quotes').select('*').order('date', { ascending: false });
+      if (error) throw error;
+      setQuotes(data || []);
+    } catch (err) {
+      console.error("Failed to fetch quotes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuotes();
+  }, []);
 
   const filteredQuotes = quotes.filter(quote => {
     const matchesSearch = 
-      quote.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.id?.toString().includes(searchTerm);
     
     const matchesStatus = statusFilter === 'All' || quote.status === statusFilter;
@@ -31,7 +48,9 @@ export default function Quotes() {
 
   const handleStatusChange = async (id: number, newStatus: 'Pending' | 'Accepted' | 'Rejected') => {
     try {
-      await db.quotes.update(id, { status: newStatus });
+      const { error } = await supabase.from('quotes').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      fetchQuotes(); // Refresh list
     } catch (error) {
       console.error("Failed to update quote status:", error);
     }
@@ -46,9 +65,9 @@ export default function Quotes() {
       ...filteredQuotes.map(q => [
         `"Q-${q.id?.toString().padStart(4, '0')}"`,
         `"${new Date(q.date).toLocaleDateString()}"`,
-        `"${q.customerName}"`,
+        `"${q.customer_name || 'Walk-in'}"`,
         `"${q.status}"`,
-        q.totalAmount,
+        q.total_amount,
         q.items.length
       ].join(','))
     ].join('\n');
@@ -132,12 +151,18 @@ export default function Quotes() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {filteredQuotes.length === 0 ? (
+              {filteredQuotes.length === 0 && !isLoading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <FileText className="w-12 h-12 mx-auto mb-3 text-slate-700" />
                     <p className="text-base font-medium text-slate-400">No quotes found</p>
                     <p className="text-sm mt-1">Generate a new quote from the Dashboard.</p>
+                  </td>
+                </tr>
+              ) : isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    <p className="text-base font-medium text-slate-400">Loading quotes...</p>
                   </td>
                 </tr>
               ) : (
@@ -156,12 +181,12 @@ export default function Quotes() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-medium text-slate-200">
-                        {quote.customerName || 'Walk-in Customer'}
+                        {quote.customer_name || 'Walk-in Customer'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-white">
-                        Ksh {quote.totalAmount.toLocaleString()}
+                        Ksh {Number(quote.total_amount).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -172,7 +197,7 @@ export default function Quotes() {
                         <select
                           value={quote.status}
                           onChange={(e) => handleStatusChange(quote.id!, e.target.value as any)}
-                          className={`text-xs font-bold bg-transparent border-none focus:ring-0 cursor-pointer ${
+                          className={`px-2 py-1 rounded text-xs font-bold bg-transparent border border-slate-700 focus:ring-0 cursor-pointer ${
                             quote.status === 'Pending' ? 'text-amber-500' :
                             quote.status === 'Accepted' ? 'text-emerald-500' :
                             'text-rose-500'

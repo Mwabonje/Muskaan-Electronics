@@ -69,7 +69,7 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Supplier</p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
                   <Building2 className="w-4 h-4 text-slate-400" />
-                  {delivery.supplierName}
+                  {delivery.supplier_name}
                 </div>
               </div>
               <div className="space-y-1">
@@ -77,25 +77,25 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
                 <div className="flex flex-col text-slate-800 font-medium">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-slate-400" />
-                    {delivery.receivedBy}
+                    {delivery.received_by}
                   </div>
-                  {delivery.receivedTime && <span className="text-xs text-slate-500 ml-6">at {delivery.receivedTime}</span>}
+                  {delivery.received_time && <span className="text-xs text-slate-500 ml-6">at {delivery.received_time}</span>}
                 </div>
               </div>
-              {(delivery.driverName || delivery.plateNumber) && (
+              {(delivery.driver_name || delivery.plate_number) && (
                 <div className="space-y-1">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transport Details</p>
                   <div className="flex flex-col text-slate-800 font-medium">
-                    {delivery.driverName && (
+                    {delivery.driver_name && (
                       <div className="flex items-center gap-2">
                         <Truck className="w-4 h-4 text-slate-400" />
-                        Driver: {delivery.driverName}
+                        Driver: {delivery.driver_name}
                       </div>
                     )}
-                    {delivery.plateNumber && (
+                    {delivery.plate_number && (
                       <div className="flex items-center gap-2">
                         <span className="w-4 h-4 flex items-center justify-center text-[10px] font-bold bg-slate-100 text-slate-500 rounded border border-slate-200">PL</span>
-                        Plate: {delivery.plateNumber}
+                        Plate: {delivery.plate_number}
                       </div>
                     )}
                   </div>
@@ -112,17 +112,17 @@ export default function ViewDeliveryModal({ isOpen, onClose, delivery }: ViewDel
                   <Calendar className="w-4 h-4 text-slate-400" />
                   Date: {new Date(delivery.date).toLocaleDateString()}
                 </div>
-                {delivery.purchaseOrderIds && delivery.purchaseOrderIds.length > 0 && (
+                {delivery.purchase_order_ids && delivery.purchase_order_ids.length > 0 && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium flex-wrap">
                     <span className="text-slate-500">LPOs:</span>
-                    {delivery.purchaseOrderIds.map(id => (
+                    {delivery.purchase_order_ids.map(id => (
                       <span key={id} className="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] font-bold">LPO-{id.toString().padStart(4, '0')}</span>
                     ))}
                   </div>
                 )}
-                {!delivery.purchaseOrderIds && delivery.purchaseOrderId && (
+                {!delivery.purchase_order_ids && delivery.purchase_order_id && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                    <span className="text-slate-500">LPO #:</span> LPO-{delivery.purchaseOrderId.toString().padStart(4, '0')}
+                    <span className="text-slate-500">LPO #:</span> LPO-{delivery.purchase_order_id.toString().padStart(4, '0')}
                   </div>
                 )}
               </div>

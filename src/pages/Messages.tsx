@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db, type Message, type User } from '../db/db';
+import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 import { Mail, Send, Inbox, AlertCircle, CheckCircle2, X } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 
 export default function Messages() {
   const { user, role } = useAuth();
@@ -10,46 +10,61 @@ export default function Messages() {
   const [subject, setSubject] = useState('');
   const [content, setContent] = useState('');
   const [receiverId, setReceiverId] = useState<string>('');
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [inboxMessages, setInboxMessages] = useState<any[]>([]);
+  const [sentMessages, setSentMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch users for the recipient dropdown
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase.from('users').select('*');
+      if (error) throw error;
+      setUsers(data.filter((u: any) => u.id !== user?.id));
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
+  };
+
+  const fetchMessages = async () => {
+    if (!user?.id) return;
+    setIsLoading(true);
+    try {
+      const roleId = role === 'Super Admin' ? 'super_admin' : 'all_managers';
+      
+      // Fetch inbox - Using raw SQL or complex filter if needed, but simplified here
+      const { data: inboxData, error: inboxError } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`receiver_id.eq.${user.id},receiver_id.eq.${roleId}`)
+        .order('date', { ascending: false });
+      
+      if (inboxError) throw inboxError;
+      setInboxMessages(inboxData || []);
+
+      // Fetch sent
+      const { data: sentData, error: sentError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('sender_id', user.id)
+        .order('date', { ascending: false });
+      
+      if (sentError) throw sentError;
+      setSentMessages(sentData || []);
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      const allUsers = await db.users.toArray();
-      // Filter out the current user
-      setUsers(allUsers.filter(u => u.id !== user?.id));
-    };
-    fetchUsers();
-  }, [user?.id]);
-
-  // Fetch messages
-  const inboxMessages = useLiveQuery(
-    () => {
-      if (!user?.id) return [];
-      return db.messages
-        .where('receiverId')
-        .equals(user.id)
-        .or('receiverId')
-        .equals(role === 'Super Admin' ? 'super_admin' : 'all_managers')
-        .reverse()
-        .sortBy('date');
-    },
-    [user?.id, role]
-  );
-
-  const sentMessages = useLiveQuery(
-    () => {
-      if (!user?.id) return [];
-      return db.messages
-        .where('senderId')
-        .equals(user.id)
-        .reverse()
-        .sortBy('date');
-    },
-    [user?.id]
-  );
+    if (user?.id) {
+      fetchUsers();
+      fetchMessages();
+    }
+  }, [user?.id, role]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,11 +86,11 @@ export default function Messages() {
         ? receiverId 
         : Number(receiverId);
 
-      await db.messages.add({
-        senderId: user.id,
-        senderName: user.name,
-        senderRole: role,
-        receiverId: parsedReceiverId,
+      const { error } = await supabase.from('messages').insert({
+        sender_id: user.id,
+        sender_name: user.name,
+        sender_role: role,
+        receiver_id: String(parsedReceiverId),
         subject,
         content,
         date: new Date().toISOString(),
@@ -83,10 +98,13 @@ export default function Messages() {
         type: 'user'
       });
 
+      if (error) throw error;
+
       setSuccessMsg('Message sent successfully!');
       setSubject('');
       setContent('');
       setReceiverId('');
+      fetchMessages();
       setActiveTab('sent');
       
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -98,7 +116,9 @@ export default function Messages() {
 
   const markAsRead = async (id: number) => {
     try {
-      await db.messages.update(id, { read: true });
+      const { error } = await supabase.from('messages').update({ read: true }).eq('id', id);
+      if (error) throw error;
+      setInboxMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m));
     } catch (err) {
       console.error('Failed to mark message as read:', err);
     }
@@ -115,10 +135,10 @@ export default function Messages() {
     }).format(date);
   };
 
-  const getRecipientName = (recId: number | string) => {
+  const getRecipientName = (recId: string) => {
     if (recId === 'super_admin') return 'Super Admin';
     if (recId === 'all_managers') return 'All Managers';
-    const recipient = users.find(u => u.id === recId);
+    const recipient = users.find(u => String(u.id) === recId);
     return recipient ? recipient.name : 'Unknown User';
   };
 
@@ -167,7 +187,7 @@ export default function Messages() {
               <Inbox className="w-5 h-5" />
               <span>Inbox</span>
             </div>
-            {inboxMessages && inboxMessages.filter(m => !m.read).length > 0 && (
+            {inboxMessages.filter(m => !m.read).length > 0 && (
               <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                 {inboxMessages.filter(m => !m.read).length}
               </span>
@@ -194,7 +214,7 @@ export default function Messages() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">New Message</h2>
                 <button 
-                  onClick={() => setActiveTab('inbox')}
+                   onClick={() => setActiveTab('inbox')}
                   className="text-slate-400 hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -264,7 +284,11 @@ export default function Messages() {
 
           {activeTab === 'inbox' && (
             <div className="flex flex-col h-full">
-              {(!inboxMessages || inboxMessages.length === 0) ? (
+              {isLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
+                  <p>Loading messages...</p>
+                </div>
+              ) : inboxMessages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
                   <Inbox className="w-12 h-12 mb-4 opacity-20" />
                   <p>Your inbox is empty.</p>
@@ -289,9 +313,9 @@ export default function Messages() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-400 mb-3 pl-5">
-                        <span className="font-medium text-slate-300">{msg.senderName}</span>
+                        <span className="font-medium text-slate-300">{msg.sender_name}</span>
                         <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                          {msg.senderRole}
+                          {msg.sender_role}
                         </span>
                       </div>
                       <p className="text-sm text-slate-400 pl-5 whitespace-pre-wrap">
@@ -306,7 +330,11 @@ export default function Messages() {
 
           {activeTab === 'sent' && (
             <div className="flex flex-col h-full">
-              {(!sentMessages || sentMessages.length === 0) ? (
+              {isLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
+                  <p>Loading sent messages...</p>
+                </div>
+              ) : sentMessages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
                   <Send className="w-12 h-12 mb-4 opacity-20" />
                   <p>You haven't sent any messages yet.</p>
@@ -322,7 +350,7 @@ export default function Messages() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
-                        <span>To: <span className="font-medium text-slate-300">{getRecipientName(msg.receiverId)}</span></span>
+                        <span>To: <span className="font-medium text-slate-300">{getRecipientName(msg.receiver_id)}</span></span>
                       </div>
                       <p className="text-sm text-slate-400 whitespace-pre-wrap">
                         {msg.content}

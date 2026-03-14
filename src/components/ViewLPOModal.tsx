@@ -74,7 +74,7 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">To (Supplier)</p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
                   <Building2 className="w-4 h-4 text-slate-400" />
-                  {lpo.supplierName}
+                  {lpo.supplier_name}
                 </div>
               </div>
             </div>
@@ -88,9 +88,9 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
                   <Calendar className="w-4 h-4 text-slate-400" />
                   Date: {new Date(lpo.date).toLocaleDateString()}
                 </div>
-                {lpo.expectedDeliveryDate && (
+                {lpo.expected_delivery_date && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                    <span className="text-slate-500">Expected Delivery:</span> {new Date(lpo.expectedDeliveryDate).toLocaleDateString()}
+                    <span className="text-slate-500">Expected Delivery:</span> {new Date(lpo.expected_delivery_date).toLocaleDateString()}
                   </div>
                 )}
               </div>
@@ -125,7 +125,7 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
                   <td colSpan={3} className="py-4 px-4 text-sm font-bold text-slate-800 text-right uppercase tracking-wider">Total Amount</td>
-                  <td className="py-4 px-4 text-lg font-black text-blue-600 text-right">{formatPrice(lpo.totalAmount)}</td>
+                  <td className="py-4 px-4 text-lg font-black text-blue-600 text-right">{formatPrice(lpo.total_amount)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -140,12 +140,12 @@ export default function ViewLPOModal({ isOpen, onClose, lpo }: ViewLPOModalProps
           )}
 
           {/* Rejection Reason */}
-          {lpo.status === 'Rejected' && lpo.rejectionReason && (
+          {lpo.status === 'Rejected' && lpo.rejection_reason && (
             <div className="pt-8 border-t border-rose-200 mt-8 bg-rose-50 -mx-8 px-8 py-6">
               <h3 className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <XCircle className="w-4 h-4" /> Rejection Reason
               </h3>
-              <p className="text-sm text-rose-700 font-medium whitespace-pre-wrap">{lpo.rejectionReason}</p>
+              <p className="text-sm text-rose-700 font-medium whitespace-pre-wrap">{lpo.rejection_reason}</p>
             </div>
           )}
 

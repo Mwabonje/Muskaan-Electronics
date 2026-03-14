@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Package, History, ArrowUpRight, ArrowDownRight, RefreshCw, ShoppingCart, RotateCcw } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Product } from '../db/db';
+import { db, Product, StockHistory } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -18,11 +18,29 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch stock history for this product
-  const stockHistory = useLiveQuery(
-    () => product?.id ? db.stockHistory.where('productId').equals(product.id).reverse().sortBy('date') : [],
-    [product?.id]
-  ) || [];
+  const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
+
+  const fetchStockHistory = async () => {
+    if (!product?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('stock_history')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setStockHistory(data || []);
+    } catch (err) {
+      console.error("Failed to fetch stock history:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && product?.id) {
+      fetchStockHistory();
+    }
+  }, [isOpen, product?.id]);
 
   useEffect(() => {
     if (isOpen && product) {
@@ -33,8 +51,8 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         name: '',
         brand: '',
         category: '',
-        cost: '',
-        selling: '',
+        cost_price: '',
+        selling_price: '',
         stock: 0,
         status: 'In Stock'
       });
@@ -48,7 +66,7 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'stock' || name === 'minStock' ? Number(value) : value
+      [name]: name === 'stock' || name === 'min_stock' ? Number(value) : value
     }));
   };
 
@@ -63,54 +81,65 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         
         let status = formData.status || 'In Stock';
         if (newStock <= 0) status = 'Out of Stock';
-        else if (newStock <= (formData.minStock || 5)) status = 'Low Stock';
+        else if (newStock <= (formData.min_stock || 5)) status = 'Low Stock';
         else status = 'In Stock';
 
-        await db.products.update(product.id, { ...formData, status, stock: newStock });
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ ...formData, status, stock: newStock })
+          .eq('id', product.id);
+        
+        if (updateError) throw updateError;
 
         // Log stock adjustment if changed
         if (oldStock !== newStock) {
           const changeType = newStock > oldStock ? 'Addition' : 'Deduction';
-          await db.stockHistory.add({
-            productId: product.id,
-            changeType: 'Adjustment',
-            quantityChange: Math.abs(newStock - oldStock),
-            previousStock: oldStock,
-            newStock: newStock,
+          await supabase.from('stock_history').insert([{
+            product_id: product.id,
+            change_type: 'Adjustment',
+            quantity_change: Math.abs(newStock - oldStock),
+            previous_stock: oldStock,
+            new_stock: newStock,
             date: new Date().toISOString(),
             reason: 'Manual adjustment via product details'
-          });
+          }]);
 
           // Log activity
-          await db.activities.add({
-            userId: user?.id || 0,
-            userName: user?.name || 'System',
-            userRole: user?.role || 'Admin',
+          await supabase.from('activities').insert([{
+            user_id: user?.id || 0,
+            user_name: user?.name || 'System',
+            user_role: user?.role || 'Admin',
             type: 'Stock Adjustment',
             description: `Manually adjusted stock for ${product.name} from ${oldStock} to ${newStock}`,
             date: new Date().toISOString(),
-            referenceId: product.id
-          });
+            reference_id: product.id
+          }]);
         }
       } else {
         // Add new
         const newStock = Number(formData.stock) || 0;
         let status = 'In Stock';
         if (newStock <= 0) status = 'Out of Stock';
-        else if (newStock <= (formData.minStock || 5)) status = 'Low Stock';
+        else if (newStock <= (formData.min_stock || 5)) status = 'Low Stock';
 
-        const newId = await db.products.add({ ...formData, status, stock: newStock } as Product);
+        const { data, error: insertError } = await supabase
+          .from('products')
+          .insert([{ ...formData, status, stock: newStock }])
+          .select();
         
-        if (newStock > 0) {
-          await db.stockHistory.add({
-            productId: newId as number,
-            changeType: 'Addition',
-            quantityChange: newStock,
-            previousStock: 0,
-            newStock: newStock,
+        if (insertError) throw insertError;
+        const newProduct = data?.[0];
+        
+        if (newStock > 0 && newProduct) {
+          await supabase.from('stock_history').insert([{
+            product_id: newProduct.id,
+            change_type: 'Addition',
+            quantity_change: newStock,
+            previous_stock: 0,
+            new_stock: newStock,
             date: new Date().toISOString(),
             reason: 'Initial stock on creation'
-          });
+          }]);
         }
       }
       onClose();
@@ -219,8 +248,8 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Cost Price</label>
                   <input
                     type="text"
-                    name="cost"
-                    value={formData.cost || ''}
+                    name="cost_price"
+                    value={formData.cost_price || ''}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Ksh 999.00"
@@ -254,8 +283,8 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Selling Price</label>
                   <input
                     type="text"
-                    name="selling"
-                    value={formData.selling || ''}
+                    name="selling_price"
+                    value={formData.selling_price || ''}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Ksh 1,199.00"
@@ -265,8 +294,8 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                   <label className="block text-sm font-semibold text-slate-700 mb-1">Minimum Stock Alert</label>
                   <input
                     type="number"
-                    name="minStock"
-                    value={formData.minStock || 5}
+                    name="min_stock"
+                    value={formData.min_stock || 5}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   />
@@ -301,24 +330,24 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              {getChangeIcon(record.changeType)}
-                              <span className="text-sm font-medium text-slate-700">{record.changeType}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm font-bold text-right">
-                            <span className={
-                              record.changeType === 'Addition' || record.changeType === 'Return' ? 'text-emerald-600' :
-                              record.changeType === 'Deduction' || record.changeType === 'Sale' ? 'text-rose-600' :
-                              'text-purple-600'
-                            }>
-                              {record.changeType === 'Addition' || record.changeType === 'Return' ? '+' :
-                               record.changeType === 'Deduction' || record.changeType === 'Sale' ? '-' : ''}
-                              {record.quantityChange}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                            {record.newStock}
-                          </td>
+                                {getChangeIcon(record.change_type)}
+                                <span className="text-sm font-medium text-slate-700">{record.change_type}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-bold text-right">
+                              <span className={
+                                record.change_type === 'Addition' || record.change_type === 'Return' ? 'text-emerald-600' :
+                                record.change_type === 'Deduction' || record.change_type === 'Sale' ? 'text-rose-600' :
+                                'text-purple-600'
+                              }>
+                                {record.change_type === 'Addition' || record.change_type === 'Return' ? '+' :
+                                 record.change_type === 'Deduction' || record.change_type === 'Sale' ? '-' : ''}
+                                {record.quantity_change}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
+                              {record.new_stock}
+                            </td>
                           <td className="px-4 py-3 text-sm text-slate-500 truncate max-w-[150px]" title={record.reason}>
                             {record.reason || '-'}
                           </td>

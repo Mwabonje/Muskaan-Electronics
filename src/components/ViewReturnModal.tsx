@@ -1,11 +1,10 @@
 import React from 'react';
 import { X, Printer, FileText, User, Calendar, RotateCcw } from 'lucide-react';
-import { CustomerReturn } from '../db/db';
 
 interface ViewReturnModalProps {
   isOpen: boolean;
   onClose: () => void;
-  customerReturn: CustomerReturn | null;
+  customerReturn: any | null;
 }
 
 export default function ViewReturnModal({ isOpen, onClose, customerReturn }: ViewReturnModalProps) {
@@ -17,7 +16,7 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
 
   const formatPrice = (priceStr: string | number) => {
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    const num = parseFloat(String(priceStr).replace(/[^0-9.-]+/g, '')) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -75,7 +74,7 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Customer</p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
                   <User className="w-4 h-4 text-slate-400" />
-                  {customerReturn.customerName}
+                  {customerReturn.customer_name}
                 </div>
               </div>
             </div>
@@ -95,9 +94,9 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
                     customerReturn.condition === 'Good' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                   }`}>{customerReturn.condition}</span>
                 </div>
-                {customerReturn.originalSaleId && (
+                {customerReturn.original_sale_id && (
                   <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                    <span className="text-slate-500">Original Sale #:</span> S-{customerReturn.originalSaleId.toString().padStart(4, '0')}
+                    <span className="text-slate-500">Original Sale #:</span> S-{customerReturn.original_sale_id.toString().padStart(4, '0')}
                   </div>
                 )}
               </div>
@@ -115,7 +114,7 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {customerReturn.items.map((item, index) => {
+                {customerReturn.items && customerReturn.items.map((item: any, index: number) => {
                   const refundAmount = Number(item.price) || 0;
                   return (
                     <tr key={index} className="group hover:bg-slate-50 transition-colors">
@@ -129,7 +128,7 @@ export default function ViewReturnModal({ isOpen, onClose, customerReturn }: Vie
               <tfoot>
                 <tr className="border-t-2 border-slate-200">
                   <td colSpan={2} className="py-4 px-4 text-sm font-bold text-slate-800 text-right uppercase tracking-wider">Total Refund</td>
-                  <td className="py-4 px-4 text-lg font-black text-blue-600 text-right">{formatPrice(customerReturn.totalRefund)}</td>
+                  <td className="py-4 px-4 text-lg font-black text-blue-600 text-right">{formatPrice(customerReturn.total_refund)}</td>
                 </tr>
               </tfoot>
             </table>

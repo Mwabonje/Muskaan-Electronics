@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ShoppingCart, ArrowLeft, Plus, Minus, Trash2, CreditCard, Banknote, User, ScanLine, X, Printer, FileText, Shield } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Product } from '../db/db';
+import { supabase } from '../lib/supabase';
 
 export default function POS() {
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Mpesa'>('Cash');
   const [transactionCode, setTransactionCode] = useState('');
@@ -17,6 +18,27 @@ export default function POS() {
   const [error, setError] = useState<string | null>(null);
 
   const categories = ['All', 'Smartphones', 'Laptops', 'Televisions', 'Audio', 'Tablets', 'Wearables'];
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name', { ascending: true });
+      
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const addToCart = (product: Product) => {
     setCart(prev => {
@@ -50,7 +72,7 @@ export default function POS() {
     return parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (parsePrice(item.product.selling) * item.quantity), 0);
+  const subtotal = cart.reduce((sum, item) => sum + (parsePrice(item.product.selling_price) * item.quantity), 0);
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + tax;
 
@@ -66,43 +88,55 @@ export default function POS() {
     if (cart.length === 0) return;
 
     try {
-      const saleId = await db.sales.add({
-        items: cart.map(item => ({
-          productId: item.product.id!,
-          name: item.product.name,
-          quantity: item.quantity,
-          price: parsePrice(item.product.selling),
-          subtotal: parsePrice(item.product.selling) * item.quantity
-        })),
-        totalAmount: total,
-        paymentMethod: paymentMethod,
-        transactionCode: paymentMethod === 'Mpesa' ? transactionCode : undefined,
-        customerName: 'Walk-in Customer',
-        date: new Date().toISOString()
-      });
+      const { data: saleData, error: saleError } = await supabase
+        .from('sales')
+        .insert([{
+          items: cart.map(item => ({
+            product_id: item.product.id!,
+            name: item.product.name,
+            quantity: item.quantity,
+            price: parsePrice(item.product.selling_price),
+            subtotal: parsePrice(item.product.selling_price) * item.quantity
+          })),
+          total_amount: total,
+          payment_method: paymentMethod,
+          transaction_code: paymentMethod === 'Mpesa' ? transactionCode : undefined,
+          customer_name: 'Walk-in Customer',
+          date: new Date().toISOString()
+        }])
+        .select();
+
+      if (saleError) throw saleError;
+      const saleId = saleData?.[0]?.id;
 
       // Update stock
       for (const item of cart) {
         if (item.product.id) {
           const newStock = Math.max(0, item.product.stock - item.quantity);
-          const status = newStock === 0 ? 'Out of Stock' : newStock <= (item.product.minStock || 5) ? 'Low Stock' : 'In Stock';
+          const status = newStock === 0 ? 'Out of Stock' : newStock <= (item.product.min_stock || 5) ? 'Low Stock' : 'In Stock';
           
-          await db.products.update(item.product.id, { stock: newStock, status });
+          const { error: productUpdateError } = await supabase
+            .from('products')
+            .update({ stock: newStock, status })
+            .eq('id', item.product.id);
           
-          await db.stockHistory.add({
-            productId: item.product.id,
-            changeType: 'Sale',
-            quantityChange: -item.quantity,
-            previousStock: item.product.stock,
-            newStock: newStock,
+          if (productUpdateError) throw productUpdateError;
+          
+          await supabase.from('stock_history').insert([{
+            product_id: item.product.id,
+            change_type: 'Sale',
+            quantity_change: -item.quantity,
+            previous_stock: item.product.stock,
+            new_stock: newStock,
             date: new Date().toISOString(),
             reason: `POS Sale #${saleId}`
-          });
+          }]);
         }
       }
 
       setCreatedSaleId(saleId as number);
       setShowReceipt(true);
+      fetchProducts(); // Refresh product list to show updated stock
     } catch (err) {
       console.error("Failed to process sale:", err);
       setError("Failed to process sale. Please try again.");
@@ -190,7 +224,7 @@ export default function POS() {
                     <p className="text-xs text-slate-500 mb-1">{product.category}</p>
                     <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-tight">{product.name}</h3>
                   </div>
-                  <p className="text-primary font-bold mt-3">Ksh {parsePrice(product.selling).toFixed(2)}</p>
+                  <p className="text-primary font-bold mt-3">Ksh {parsePrice(product.selling_price).toFixed(2)}</p>
                 </div>
               </button>
             ))}
@@ -225,7 +259,7 @@ export default function POS() {
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2">
-                      <p className="text-primary font-bold text-sm">Ksh {parsePrice(item.product.selling).toFixed(2)}</p>
+                      <p className="text-primary font-bold text-sm">Ksh {parsePrice(item.product.selling_price).toFixed(2)}</p>
                       <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                         <button 
                           onClick={() => updateQuantity(item.product.id, -1)}
@@ -365,7 +399,7 @@ export default function POS() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {cart.map(item => {
-                      const price = parsePrice(item.product.selling);
+                      const price = parsePrice(item.product.selling_price);
                       return (
                         <tr key={item.product.id}>
                           <td className="py-3 text-sm font-medium text-slate-800">{item.product.name}</td>

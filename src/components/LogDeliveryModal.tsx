@@ -12,13 +12,13 @@ import {
   Truck,
   User
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, PurchaseOrder } from '../db/db';
+import { db } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface CartItem {
   id: string;
-  productId: number | '';
+  product_id: number | '';
   quantity: number | '';
 }
 
@@ -29,12 +29,39 @@ interface LogDeliveryModalProps {
 
 export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalProps) {
   const { user } = useAuth();
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
-  const approvedLPOs = useLiveQuery(() => db.purchaseOrders.where('status').equals('Approved').toArray(), []) || [];
+  const [products, setProducts] = useState<any[]>([]);
+  const [approvedLPOs, setApprovedLPOs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [productsRes, lposRes] = await Promise.all([
+        supabase.from('products').select('*'),
+        supabase.from('purchase_orders').select('*').eq('status', 'Approved')
+      ]);
+
+      if (productsRes.error) throw productsRes.error;
+      if (lposRes.error) throw lposRes.error;
+
+      setProducts(productsRes.data || []);
+      setApprovedLPOs(lposRes.data || []);
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchData();
+    }
+  }, [isOpen]);
   
   const [filter, setFilter] = useState('ALL');
   const [cartItems, setCartItems] = useState<CartItem[]>([
-    { id: crypto.randomUUID(), productId: '', quantity: 1 }
+    { id: crypto.randomUUID(), product_id: '', quantity: 1 }
   ]);
   const [selectedLpoIds, setSelectedLpoIds] = useState<number[]>([]);
   const [supplierName, setSupplierName] = useState('');
@@ -55,7 +82,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       setCreatedDeliveryId(null);
       setError(null);
       setFilter('ALL');
-      setCartItems([{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+      setCartItems([{ id: crypto.randomUUID(), product_id: '', quantity: 1 }]);
       setSelectedLpoIds([]);
       setSupplierName('');
       setReceivedBy('');
@@ -69,7 +96,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
   if (!isOpen) return null;
 
   const handleAddItem = () => {
-    setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+    setCartItems([...cartItems, { id: crypto.randomUUID(), product_id: '', quantity: 1 }]);
     setError(null);
   };
 
@@ -90,7 +117,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
     }));
   };
 
-  const handleLpoToggle = (lpo: PurchaseOrder) => {
+  const handleLpoToggle = (lpo: any) => {
     setError(null);
     const id = lpo.id!;
     let newSelectedIds: number[];
@@ -111,24 +138,24 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
       const itemsMap = new Map<number, number>();
       selectedLPOs.forEach(l => {
         l.items.forEach(item => {
-          itemsMap.set(item.productId, (itemsMap.get(item.productId) || 0) + item.quantity);
+          itemsMap.set(item.product_id, (itemsMap.get(item.product_id) || 0) + item.quantity);
         });
       });
 
-      const newCartItems = Array.from(itemsMap.entries()).map(([productId, quantity]) => ({
+      const newCartItems = Array.from(itemsMap.entries()).map(([product_id, quantity]) => ({
         id: crypto.randomUUID(),
-        productId,
+        product_id,
         quantity
       }));
 
-      setCartItems(newCartItems.length > 0 ? newCartItems : [{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+      setCartItems(newCartItems.length > 0 ? newCartItems : [{ id: crypto.randomUUID(), product_id: '', quantity: 1 }]);
       
       // Set supplier name from the first selected LPO if not set
       if (selectedLPOs.length > 0 && !supplierName) {
-        setSupplierName(selectedLPOs[0].supplierName);
+        setSupplierName(selectedLPOs[0].supplier_name);
       }
     } else {
-      setCartItems([{ id: crypto.randomUUID(), productId: '', quantity: 1 }]);
+      setCartItems([{ id: crypto.randomUUID(), product_id: '', quantity: 1 }]);
     }
   };
 
@@ -140,13 +167,13 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
     return true;
   });
 
-  const validItemsCount = cartItems.filter(item => item.productId !== '').length;
+  const validItemsCount = cartItems.filter(item => item.product_id !== '').length;
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmDelivery = async () => {
     setError(null);
     // Basic validation
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
       setError("Please add at least one valid item.");
       return;
@@ -162,69 +189,71 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
 
     try {
       // Create Delivery record
-      const deliveryId = await db.deliveries.add({
+      const { data: deliveryData, error: deliveryError } = await supabase.from('deliveries').insert([{
         items: validItems.map(item => {
-          const product = products.find(p => p.id === Number(item.productId));
+          const product = products.find(p => p.id === Number(item.product_id));
           return {
-            productId: Number(item.productId),
+            product_id: Number(item.product_id),
             name: product?.name || 'Unknown Item',
             quantity: Number(item.quantity),
             price: 0,
             subtotal: 0
           };
         }),
-        supplierName,
-        receivedBy,
-        driverName: driverName || undefined,
-        plateNumber: plateNumber || undefined,
-        receivedTime: receivedTime || undefined,
+        supplier_name: supplierName,
+        received_by: receivedBy,
+        driver_name: driverName || undefined,
+        plate_number: plateNumber || undefined,
+        received_time: receivedTime || undefined,
         date: new Date().toISOString(),
         notes: notes || undefined,
-        purchaseOrderIds: selectedLpoIds.length > 0 ? selectedLpoIds : undefined
-      });
+        purchase_order_ids: selectedLpoIds.length > 0 ? selectedLpoIds : undefined
+      }]).select();
+
+      if (deliveryError) throw deliveryError;
+      const deliveryId = deliveryData[0].id;
 
       // Update inventory stock (Increase)
       for (const item of validItems) {
-        const product = products.find(p => p.id === Number(item.productId));
+        const product = products.find(p => p.id === Number(item.product_id));
         if (product) {
           const qty = Number(item.quantity);
           const newStock = product.stock + qty;
-          const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.minStock || 5) ? 'Low Stock' : 'In Stock';
-          await db.products.update(product.id!, { stock: newStock, status });
+          const status = newStock === 0 ? 'Out of Stock' : newStock <= (product.min_stock || 5) ? 'Low Stock' : 'In Stock';
           
-          await db.stockHistory.add({
-            productId: product.id!,
-            changeType: 'Addition',
-            quantityChange: qty,
-            previousStock: product.stock,
-            newStock: newStock,
+          await supabase.from('products').update({ stock: newStock, status }).eq('id', product.id);
+          
+          await supabase.from('stock_history').insert([{
+            product_id: product.id,
+            change_type: 'Addition',
+            quantity_change: qty,
+            previous_stock: product.stock,
+            new_stock: newStock,
             date: new Date().toISOString(),
             reason: `Delivery #${deliveryId} from ${supplierName}` + (selectedLpoIds.length > 0 ? ` (LPOs: ${selectedLpoIds.map(id => `LPO-${id.toString().padStart(4, '0')}`).join(', ')})` : '')
-          });
+          }]);
         }
       }
 
       // Update LPO statuses to 'Delivered'
       if (selectedLpoIds.length > 0) {
         for (const id of selectedLpoIds) {
-          await db.purchaseOrders.update(id, { status: 'Delivered' });
+          await supabase.from('purchase_orders').update({ status: 'Delivered' }).eq('id', id);
         }
       }
 
-
-
       // Log activity
-      await db.activities.add({
-        userId: user?.id || 0,
-        userName: user?.name || 'System',
-        userRole: user?.role || 'Cashier',
+      await supabase.from('activities').insert([{
+        user_id: user?.id || 0,
+        user_name: user?.name || 'System',
+        user_role: user?.role || 'Cashier',
         type: 'Delivery',
         description: `Logged a delivery of ${validItems.length} items from ${supplierName}`,
         date: new Date().toISOString(),
-        referenceId: deliveryId as number
-      });
+        reference_id: deliveryId
+      }]);
 
-      setCreatedDeliveryId(deliveryId as number);
+      setCreatedDeliveryId(deliveryId);
       setStep('preview');
     } catch (err) {
       console.error("Failed to log delivery:", err);
@@ -237,7 +266,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
   };
 
   if (step === 'preview') {
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
@@ -334,7 +363,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {validItems.map(item => {
-                  const product = products.find(p => p.id === Number(item.productId));
+                  const product = products.find(p => p.id === Number(item.product_id));
                   const qty = Number(item.quantity);
                   return (
                     <tr key={item.id} className="group hover:bg-slate-50 transition-colors">
@@ -418,7 +447,7 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  LPO-{lpo.id?.toString().padStart(4, '0')} ({lpo.supplierName})
+                  LPO-{lpo.id?.toString().padStart(4, '0')} ({lpo.supplier_name})
                 </button>
               ))}
               {approvedLPOs.length === 0 && (
@@ -537,8 +566,8 @@ export default function LogDeliveryModal({ isOpen, onClose }: LogDeliveryModalPr
                     <div className="flex-1 space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item</label>
                       <select 
-                        value={item.productId}
-                        onChange={(e) => handleItemChange(item.id, 'productId', e.target.value ? Number(e.target.value) : '')}
+                        value={item.product_id}
+                        onChange={(e) => handleItemChange(item.id, 'product_id', e.target.value ? Number(e.target.value) : '')}
                         className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none appearance-none"
                       >
                         <option value="">Select Item</option>

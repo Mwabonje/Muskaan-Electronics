@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useEffect } from 'react';
 import { db, PurchaseOrder } from '../db/db';
 import { Search, Download, ClipboardList, ChevronLeft, ChevronRight, Eye, CheckCircle2, XCircle, Edit3 } from 'lucide-react';
 import ViewLPOModal from '../components/ViewLPOModal';
 import CreateLPOModal from '../components/CreateLPOModal';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function PurchaseOrders() {
   const { user, role } = useAuth();
-  const lpos = useLiveQuery(() => db.purchaseOrders.reverse().toArray(), []) || [];
+  const [lpos, setLpos] = useState<PurchaseOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLPO, setSelectedLPO] = useState<PurchaseOrder | null>(null);
@@ -17,9 +18,30 @@ export default function PurchaseOrders() {
   const itemsPerPage = 15;
   const isAdmin = role === 'Super Admin' || role === 'Manager';
 
+  const fetchLPOs = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setLpos(data || []);
+    } catch (err) {
+      console.error("Failed to fetch LPOs:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLPOs();
+  }, []);
+
   const filteredLPOs = lpos.filter(lpo => {
     const matchesSearch = 
-      lpo.supplierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lpo.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       lpo.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
@@ -37,19 +59,25 @@ export default function PurchaseOrders() {
     if (!isAdmin) return;
     if (confirm('Are you sure you want to approve this purchase order?')) {
       try {
-        await db.purchaseOrders.update(id, { status: 'Approved', rejectionReason: undefined });
+        const { error } = await supabase
+          .from('purchase_orders')
+          .update({ status: 'Approved', rejection_reason: undefined })
+          .eq('id', id);
+        
+        if (error) throw error;
         
         // Log activity
         const lpo = lpos.find(l => l.id === id);
-        await db.activities.add({
-          userId: user?.id || 0,
-          userName: user?.name || 'System',
-          userRole: role || 'Admin',
+        await supabase.from('activities').insert([{
+          user_id: user?.id || 0,
+          user_name: user?.name || 'System',
+          user_role: role || 'Admin',
           type: 'LPO Approved',
-          description: `Approved LPO for ${lpo?.supplierName || 'Unknown'} (Total: Ksh ${lpo?.totalAmount.toLocaleString() || '0'})`,
+          description: `Approved LPO for ${lpo?.supplier_name || 'Unknown'} (Total: Ksh ${lpo?.total_amount?.toLocaleString() || '0'})`,
           date: new Date().toISOString(),
-          referenceId: id
-        });
+          reference_id: id
+        }]);
+        fetchLPOs();
       } catch (error) {
         console.error("Failed to approve LPO:", error);
       }
@@ -66,21 +94,27 @@ export default function PurchaseOrders() {
     }
 
     try {
-      await db.purchaseOrders.update(id, { 
-        status: 'Rejected',
-        rejectionReason: reason 
-      });
+      const { error } = await supabase
+        .from('purchase_orders')
+        .update({ 
+          status: 'Rejected',
+          rejection_reason: reason 
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
       
       const lpo = lpos.find(l => l.id === id);
-      await db.activities.add({
-        userId: user?.id || 0,
-        userName: user?.name || 'System',
-        userRole: role || 'Admin',
+      await supabase.from('activities').insert([{
+        user_id: user?.id || 0,
+        user_name: user?.name || 'System',
+        user_role: role || 'Admin',
         type: 'LPO Rejected',
-        description: `Rejected LPO for ${lpo?.supplierName || 'Unknown'}. Reason: ${reason}`,
+        description: `Rejected LPO for ${lpo?.supplier_name || 'Unknown'}. Reason: ${reason}`,
         date: new Date().toISOString(),
-        referenceId: id
-      });
+        reference_id: id
+      }]);
+      fetchLPOs();
     } catch (error) {
       console.error("Failed to reject LPO:", error);
     }
@@ -95,8 +129,8 @@ export default function PurchaseOrders() {
       ...filteredLPOs.map(l => [
         `"LPO-${l.id?.toString().padStart(4, '0')}"`,
         `"${new Date(l.date).toLocaleDateString()}"`,
-        `"${l.supplierName}"`,
-        l.totalAmount,
+        `"${l.supplier_name}"`,
+        l.total_amount,
         l.items.length
       ].join(','))
     ].join('\n');
@@ -181,12 +215,12 @@ export default function PurchaseOrders() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {lpo.supplierName}
+                      {lpo.supplier_name}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-white">
-                      {formatPrice(lpo.totalAmount)}
+                      {formatPrice(lpo.total_amount)}
                     </span>
                   </td>
                   <td className="px-6 py-4">

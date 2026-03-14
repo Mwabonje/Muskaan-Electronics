@@ -1,20 +1,38 @@
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, CustomerReturn } from '../db/db';
+import { useState, useEffect } from 'react';
+import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
 import { Search, Download, RotateCcw, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import ViewReturnModal from '../components/ViewReturnModal';
 
 export default function CustomerReturns() {
-  const returns = useLiveQuery(() => db.returns.reverse().toArray(), []) || [];
+  const [returns, setReturns] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReturn, setSelectedReturn] = useState<CustomerReturn | null>(null);
+  const [selectedReturn, setSelectedReturn] = useState<any | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
+  const fetchReturns = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from('returns').select('*').order('date', { ascending: false });
+      if (error) throw error;
+      setReturns(data || []);
+    } catch (err) {
+      console.error("Failed to fetch returns:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReturns();
+  }, []);
+
   const filteredReturns = returns.filter(ret => {
     const matchesSearch = 
-      ret.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ret.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ret.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
@@ -24,7 +42,7 @@ export default function CustomerReturns() {
 
   const formatPrice = (priceStr: string | number) => {
     if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    const num = parseFloat(String(priceStr).replace(/[^0-9.-]+/g, '')) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -37,9 +55,9 @@ export default function CustomerReturns() {
       ...filteredReturns.map(r => [
         `"RET-${r.id?.toString().padStart(4, '0')}"`,
         `"${new Date(r.date).toLocaleDateString()}"`,
-        `"${r.customerName}"`,
-        `"${r.originalSaleId || 'N/A'}"`,
-        r.totalRefund,
+        `"${r.customer_name}"`,
+        `"${r.original_sale_id || 'N/A'}"`,
+        r.total_refund,
         r.items.length
       ].join(','))
     ].join('\n');
@@ -124,17 +142,17 @@ export default function CustomerReturns() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {ret.customerName}
+                      {ret.customer_name}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-400">
-                      {ret.originalSaleId ? `S-${ret.originalSaleId.toString().padStart(4, '0')}` : 'N/A'}
+                      {ret.original_sale_id ? `S-${ret.original_sale_id.toString().padStart(4, '0')}` : 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-white">
-                      {formatPrice(ret.totalRefund)}
+                      {formatPrice(ret.total_refund)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -151,10 +169,17 @@ export default function CustomerReturns() {
                   </td>
                 </tr>
               ))}
-              {paginatedReturns.length === 0 && (
+              {paginatedReturns.length === 0 && !isLoading && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     No returns found matching your criteria.
+                  </td>
+                </tr>
+              )}
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    Loading returns...
                   </td>
                 </tr>
               )}

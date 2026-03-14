@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db, type User, type Role } from '../db/db';
-import { insforge } from '../lib/insforge';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUserId = localStorage.getItem('auth_user_id');
       if (storedUserId) {
         try {
-          const { data: users, error } = await insforge
+          const { data: users, error } = await supabase
             .from('users')
             .select('*')
             .eq('id', Number(storedUserId))

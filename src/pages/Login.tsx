@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MonitorSmartphone, User, Lock, LogIn, Eye, EyeOff, Users } from 'lucide-react';
 import { db } from '../db/db';
 import { useAuth } from '../context/AuthContext';
-import { insforge } from '../lib/insforge';
+import { supabase } from '../lib/supabase';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +20,7 @@ export default function Login() {
     
     try {
       // Find user in InsForge cloud database
-      const { data: users, error: fetchError } = await insforge
+      const { data: users, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
@@ -30,7 +30,7 @@ export default function Login() {
         throw new Error(fetchError.message);
       }
 
-      const user = users && users.length > 0 ? users[0] : null;
+      const user = users && users.length > 0 ? (users[0] as any) : null;
       
       if (user) {
         if (user.password !== password) {
@@ -50,9 +50,9 @@ export default function Login() {
         }
         
         // Update last login in cloud
-        await insforge
+        await supabase
           .from('users')
-          .update({ last_login: 'Just now' })
+          .update({ last_login: new Date().toISOString() })
           .eq('id', user.id);
         
         login(user);

@@ -10,7 +10,7 @@ export interface User {
   password?: string;
   role: Role;
   status: Status;
-  lastLogin: string;
+  last_login: string;
 }
 
 export interface Product {
@@ -18,16 +18,16 @@ export interface Product {
   name: string;
   brand: string;
   category: string;
-  cost: string | number;
-  selling: string | number;
+  cost_price: string | number;
+  selling_price: string | number;
   stock: number;
-  minStock?: number;
+  min_stock?: number;
   status: string;
   image?: string;
 }
 
 export interface SaleItem {
-  productId: number;
+  product_id: number;
   name: string;
   quantity: number;
   price: number;
@@ -37,22 +37,22 @@ export interface SaleItem {
 export interface Sale {
   id?: number;
   items: SaleItem[];
-  totalAmount: number;
+  total_amount: number;
   subtotal: number;
   discount: number;
-  paymentMethod: string;
+  payment_method: string;
   date: string;
-  customerName?: string;
+  customer_name?: string;
   notes?: string;
-  transactionCode?: string;
+  transaction_code?: string;
 }
 
 export interface Quote {
   id?: number;
   items: SaleItem[];
-  totalAmount: number;
+  total_amount: number;
   date: string;
-  customerName?: string;
+  customer_name?: string;
   notes?: string;
   status: 'Pending' | 'Accepted' | 'Rejected';
 }
@@ -60,37 +60,37 @@ export interface Quote {
 export interface PurchaseOrder {
   id?: number;
   items: SaleItem[];
-  totalAmount: number;
-  supplierName: string;
+  total_amount: number;
+  supplier_name: string;
   date: string;
-  expectedDeliveryDate?: string;
+  expected_delivery_date?: string;
   status: 'Pending' | 'Approved' | 'Delivered' | 'Cancelled' | 'Rejected';
   notes?: string;
-  rejectionReason?: string;
+  rejection_reason?: string;
 }
 
 export type LPO = PurchaseOrder;
 
 export interface Delivery {
   id?: number;
-  purchaseOrderId?: number;
-  purchaseOrderIds?: number[];
+  purchase_order_id?: number;
+  purchase_order_ids?: number[];
   items: SaleItem[];
-  supplierName: string;
+  supplier_name: string;
   date: string;
-  receivedBy: string;
-  driverName?: string;
-  plateNumber?: string;
-  receivedTime?: string;
+  received_by: string;
+  driver_name?: string;
+  plate_number?: string;
+  received_time?: string;
   notes?: string;
 }
 
 export interface Return {
   id?: number;
-  originalSaleId?: number;
+  original_sale_id?: number;
   items: SaleItem[];
-  totalRefund: number;
-  customerName: string;
+  total_refund: number;
+  customer_name: string;
   date: string;
   reason: string;
   condition: 'Good' | 'Damaged';
@@ -100,22 +100,22 @@ export type CustomerReturn = Return;
 
 export interface StockHistory {
   id?: number;
-  productId: number;
-  changeType: 'Addition' | 'Deduction' | 'Adjustment' | 'Sale' | 'Return';
-  quantityChange: number;
-  previousStock: number;
-  newStock: number;
+  product_id: number;
+  change_type: 'Addition' | 'Deduction' | 'Adjustment' | 'Sale' | 'Return';
+  quantity_change: number;
+  previous_stock: number;
+  new_stock: number;
   date: string;
   reason?: string;
-  userId?: number;
+  user_id?: number;
 }
 
 export interface Message {
   id?: number;
-  senderId: number;
-  senderName: string;
-  senderRole: Role;
-  receiverId: number | 'all_managers' | 'super_admin';
+  sender_id: number;
+  sender_name: string;
+  sender_role: Role;
+  receiver_id: number | 'all_managers' | 'super_admin';
   subject: string;
   content: string;
   date: string;
@@ -125,13 +125,13 @@ export interface Message {
 
 export interface Activity {
   id?: number;
-  userId: number;
-  userName: string;
-  userRole: Role;
+  user_id: number;
+  user_name: string;
+  user_role: Role;
   type: 'Sale' | 'Quote' | 'LPO Created' | 'LPO Approved' | 'LPO Rejected' | 'Delivery' | 'Return' | 'Stock Adjustment';
   description: string;
   date: string;
-  referenceId?: number;
+  reference_id?: number;
 }
 
 const db = new Dexie('MuskaanDB') as Dexie & {
@@ -139,26 +139,26 @@ const db = new Dexie('MuskaanDB') as Dexie & {
   products: EntityTable<Product, 'id'>;
   sales: EntityTable<Sale, 'id'>;
   quotes: EntityTable<Quote, 'id'>;
-  purchaseOrders: EntityTable<PurchaseOrder, 'id'>;
+  purchase_orders: EntityTable<PurchaseOrder, 'id'>;
   deliveries: EntityTable<Delivery, 'id'>;
   returns: EntityTable<Return, 'id'>;
-  stockHistory: EntityTable<StockHistory, 'id'>;
+  stock_history: EntityTable<StockHistory, 'id'>;
   messages: EntityTable<Message, 'id'>;
   activities: EntityTable<Activity, 'id'>;
 };
 
 // Schema declaration
-db.version(7).stores({
+db.version(8).stores({
   users: '++id, name, email, role, status',
   products: '++id, name, brand, category, status',
-  sales: '++id, date, customerName, paymentMethod',
-  quotes: '++id, date, customerName, status',
-  purchaseOrders: '++id, date, supplierName, status',
-  deliveries: '++id, date, supplierName, purchaseOrderId',
-  returns: '++id, date, customerName, saleId',
-  stockHistory: '++id, productId, date, changeType',
-  messages: '++id, senderId, receiverId, date, read, type',
-  activities: '++id, userId, userRole, date, type'
+  sales: '++id, date, customer_name, payment_method',
+  quotes: '++id, date, customer_name, status',
+  purchase_orders: '++id, date, supplier_name, status',
+  deliveries: '++id, date, supplier_name, purchase_order_id',
+  returns: '++id, date, customer_name, original_sale_id',
+  stock_history: '++id, product_id, date, change_type',
+  messages: '++id, sender_id, receiver_id, date, read, type',
+  activities: '++id, user_id, user_role, date, type'
 }).upgrade(tx => {
   return tx.table('users').toCollection().modify(user => {
     if (!user.password) {

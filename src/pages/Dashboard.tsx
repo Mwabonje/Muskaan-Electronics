@@ -18,8 +18,9 @@ import {
   CheckCircle2,
   MessageSquare
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 import NewSaleModal from '../components/NewSaleModal';
 import NewQuoteModal from '../components/NewQuoteModal';
 import CreateLPOModal from '../components/CreateLPOModal';
@@ -35,38 +36,63 @@ export default function Dashboard() {
   const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
   const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] = useState(false);
   
-  const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
-  const lowStockCount = useLiveQuery(() => db.products.where('status').equals('Low Stock').count(), []) || 0;
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const todaysSales = useLiveQuery(() => 
-    db.sales.filter(sale => new Date(sale.date) >= today).toArray(), 
-  []) || [];
+  const [products, setProducts] = useState<any[]>([]);
+  const [todaysSales, setTodaysSales] = useState<any[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activities = useLiveQuery(() => db.activities.reverse().limit(10).toArray(), []) || [];
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const [productsRes, salesRes, activitiesRes] = await Promise.all([
+        supabase.from('products').select('*'),
+        supabase.from('sales').select('*').gte('date', today.toISOString()),
+        supabase.from('activities').select('*').order('date', { ascending: false }).limit(10)
+      ]);
+
+      if (productsRes.error) throw productsRes.error;
+      if (salesRes.error) throw salesRes.error;
+      if (activitiesRes.error) throw activitiesRes.error;
+
+      setProducts(productsRes.data || []);
+      setTodaysSales(salesRes.data || []);
+      setActivities(activitiesRes.data || []);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const productsCount = products.length;
+  const lowStockCount = products.filter(p => p.status === 'Low Stock').length;
   
   const filteredActivities = activities.filter(activity => {
     if (role === 'Super Admin') return true;
-    if (role === 'Cashier') return activity.userId === user?.id;
+    if (role === 'Cashier') return activity.user_id === user?.id;
     // For Managers/Admins
-    return activity.userRole !== 'Super Admin';
+    return activity.user_role !== 'Super Admin';
   });
 
-  const todaysRevenue = todaysSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
+  const todaysRevenue = todaysSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
   
   const todaysProfit = todaysSales.reduce((sum, sale) => {
-    return sum + sale.items.reduce((itemSum, item) => {
-      const product = products.find(p => p.id === item.productId);
-      const cost = product ? (typeof product.cost === 'string' ? parseFloat(product.cost.replace(/[^0-9.-]+/g, '')) : product.cost) : 0;
+    return sum + (sale.items || []).reduce((itemSum: number, item: any) => {
+      const product = products.find(p => p.id === item.product_id);
+      const cost = product ? (typeof product.cost_price === 'string' ? parseFloat(product.cost_price.replace(/[^0-9.-]+/g, '')) : product.cost_price) : 0;
       return itemSum + ((item.price - cost) * item.quantity);
     }, 0);
   }, 0);
 
   const totalInventoryValue = products.reduce((sum, product) => {
-    const cost = typeof product.cost === 'string' ? parseFloat(product.cost.replace(/[^0-9.-]+/g, '')) : product.cost;
+    const cost = typeof product.cost_price === 'string' ? parseFloat(product.cost_price.replace(/[^0-9.-]+/g, '')) : product.cost_price;
     return sum + (cost * product.stock);
   }, 0);
 
@@ -95,8 +121,8 @@ export default function Dashboard() {
         p.stock,
         '"Pcs"',
         `"${p.status}"`,
-        p.cost,
-        p.selling
+        p.cost_price,
+        p.selling_price
       ].join(','))
     ].join('\n');
 
@@ -242,7 +268,7 @@ export default function Dashboard() {
                             {product.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300 text-right whitespace-nowrap">{formatPrice(product.selling)}</td>
+                        <td className="px-6 py-4 text-sm text-slate-300 text-right whitespace-nowrap">{formatPrice(product.selling_price)}</td>
                       </tr>
                     ))
                   )}
@@ -399,7 +425,7 @@ export default function Dashboard() {
                               </span>
                               <span className="text-[10px] text-slate-500">•</span>
                               <span className="text-[10px] text-slate-400 font-bold uppercase">
-                                BY {activity.userRole}
+                                BY {activity.user_role}
                               </span>
                             </div>
                           </div>

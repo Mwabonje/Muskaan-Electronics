@@ -11,13 +11,13 @@ import {
   Shield,
   Calendar
 } from 'lucide-react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, PurchaseOrder } from '../db/db';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface CartItem {
   id: string;
-  productId: number | '';
+  product_id: number | '';
   price: number | '';
   quantity: number | '';
 }
@@ -30,11 +30,31 @@ interface CreateLPOModalProps {
 
 export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLPOModalProps) {
   const { user } = useAuth();
-  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from('products').select('*');
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchProducts();
+    }
+  }, [isOpen]);
   
   const [filter, setFilter] = useState('ALL');
   const [cartItems, setCartItems] = useState<CartItem[]>([
-    { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }
+    { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }
   ]);
   const [supplierName, setSupplierName] = useState('');
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
@@ -54,19 +74,19 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
         setFilter('ALL');
         setCartItems(editingLPO.items.map(item => ({
           id: crypto.randomUUID(),
-          productId: item.productId,
+          product_id: item.product_id,
           price: item.price,
           quantity: item.quantity
         })));
-        setSupplierName(editingLPO.supplierName);
-        setExpectedDeliveryDate(editingLPO.expectedDeliveryDate || '');
+        setSupplierName(editingLPO.supplier_name);
+        setExpectedDeliveryDate(editingLPO.expected_delivery_date || '');
         setNotes(editingLPO.notes || '');
       } else {
         setStep('form');
         setCreatedLPOId(null);
         setError(null);
         setFilter('ALL');
-        setCartItems([{ id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+        setCartItems([{ id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
         setSupplierName('');
         setExpectedDeliveryDate('');
         setNotes('');
@@ -77,7 +97,7 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
   if (!isOpen) return null;
 
   const handleAddItem = () => {
-    setCartItems([...cartItems, { id: crypto.randomUUID(), productId: '', price: 0, quantity: 1 }]);
+    setCartItems([...cartItems, { id: crypto.randomUUID(), product_id: '', price: 0, quantity: 1 }]);
     setError(null);
   };
 
@@ -94,10 +114,10 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
         // Auto-fill cost price when product is selected
-        if (field === 'productId' && value !== '') {
+        if (field === 'product_id' && value !== '') {
           const product = products.find(p => p.id === Number(value));
           if (product) {
-            const priceString = String(product.cost).replace(/[^0-9.-]+/g,"");
+            const priceString = String(product.cost_price).replace(/[^0-9.-]+/g,"");
             updatedItem.price = Number(priceString);
           }
         }
@@ -122,13 +142,13 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
     return true;
   });
 
-  const validItemsCount = cartItems.filter(item => item.productId !== '').length;
+  const validItemsCount = cartItems.filter(item => item.product_id !== '').length;
   const itemsText = validItemsCount === 0 ? 'Unknown' : validItemsCount.toString();
 
   const handleConfirmLPO = async () => {
     setError(null);
     // Basic validation
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     if (validItems.length === 0) {
       setError("Please add at least one valid item.");
       return;
@@ -141,42 +161,45 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
     try {
       const lpoData = {
         items: validItems.map(item => {
-          const product = products.find(p => p.id === Number(item.productId));
+          const product = products.find(p => p.id === Number(item.product_id));
           return {
-            productId: Number(item.productId),
+            product_id: Number(item.product_id),
             name: product?.name || 'Unknown Item',
             quantity: Number(item.quantity),
             price: Number(item.price),
             subtotal: Number(item.quantity) * Number(item.price)
           };
         }),
-        totalAmount: grandTotal,
-        supplierName,
+        total_amount: grandTotal,
+        supplier_name: supplierName,
         date: editingLPO ? editingLPO.date : new Date().toISOString(),
-        expectedDeliveryDate: expectedDeliveryDate || undefined,
+        expected_delivery_date: expectedDeliveryDate || undefined,
         notes: notes || undefined,
-        status: 'Pending' as const,
-        rejectionReason: undefined // Clear any previous rejection reason
+        status: 'Pending',
+        rejection_reason: null // Clear any previous rejection reason
       };
 
       let lpoId: number;
       if (editingLPO && editingLPO.id) {
-        await db.purchaseOrders.update(editingLPO.id, lpoData);
+        const { error: updateError } = await supabase.from('purchase_orders').update(lpoData).eq('id', editingLPO.id);
+        if (updateError) throw updateError;
         lpoId = editingLPO.id;
       } else {
-        lpoId = await db.purchaseOrders.add(lpoData) as number;
+        const { data, error: insertError } = await supabase.from('purchase_orders').insert([lpoData]).select();
+        if (insertError) throw insertError;
+        lpoId = data[0].id;
       }
 
       // Log activity
-      await db.activities.add({
-        userId: user?.id || 0,
-        userName: user?.name || 'System',
-        userRole: user?.role || 'Manager',
-        type: editingLPO ? 'LPO Created' : 'LPO Created', // Maybe 'LPO Updated' but 'Created' usually works for resubmission logs
+      await supabase.from('activities').insert([{
+        user_id: user?.id || 0,
+        user_name: user?.name || 'System',
+        user_role: user?.role || 'Manager',
+        type: 'LPO Created',
         description: `${editingLPO ? 'Updated and resubmitted' : 'Created a new'} LPO for ${supplierName} (Total: Ksh ${grandTotal.toLocaleString()})`,
         date: new Date().toISOString(),
-        referenceId: lpoId
-      });
+        reference_id: lpoId
+      }]);
 
       setCreatedLPOId(lpoId);
       setStep('preview');
@@ -191,7 +214,7 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
   };
 
   if (step === 'preview') {
-    const validItems = cartItems.filter(item => item.productId !== '' && Number(item.quantity) > 0);
+    const validItems = cartItems.filter(item => item.product_id !== '' && Number(item.quantity) > 0);
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 print:p-0 print:bg-white">
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm print:hidden" onClick={onClose}></div>
@@ -260,7 +283,7 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {validItems.map(item => {
-                  const product = products.find(p => p.id === Number(item.productId));
+                  const product = products.find(p => p.id === Number(item.product_id));
                   const price = Number(item.price);
                   const qty = Number(item.quantity);
                   return (
@@ -407,13 +430,13 @@ export default function CreateLPOModal({ isOpen, onClose, editingLPO }: CreateLP
                     <div className="flex-1 space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item</label>
                       <select 
-                        value={item.productId}
-                        onChange={(e) => handleItemChange(item.id, 'productId', e.target.value ? Number(e.target.value) : '')}
+                        value={item.product_id}
+                        onChange={(e) => handleItemChange(item.id, 'product_id', e.target.value ? Number(e.target.value) : '')}
                         className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 outline-none appearance-none"
                       >
                         <option value="">Select Item</option>
                         {filteredProducts.map(p => (
-                          <option key={p.id} value={p.id}>{p.name} - Cost: Ksh {formatPrice(p.cost)}</option>
+                          <option key={p.id} value={p.id}>{p.name} - Cost: Ksh {formatPrice(p.cost_price)}</option>
                         ))}
                       </select>
                     </div>

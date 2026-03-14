@@ -1,20 +1,42 @@
-import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Delivery } from '../db/db';
+import { useState, useEffect } from 'react';
+import { Delivery } from '../db/db';
 import { Search, Download, Truck, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import ViewDeliveryModal from '../components/ViewDeliveryModal';
+import { supabase } from '../lib/supabase';
 
 export default function Deliveries() {
-  const deliveries = useLiveQuery(() => db.deliveries.reverse().toArray(), []) || [];
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
+  const fetchDeliveries = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('deliveries')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setDeliveries(data || []);
+    } catch (err) {
+      console.error("Failed to fetch deliveries:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeliveries();
+  }, []);
+
   const filteredDeliveries = deliveries.filter(delivery => {
     const matchesSearch = 
-      delivery.supplierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (delivery.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       delivery.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
@@ -31,8 +53,8 @@ export default function Deliveries() {
       ...filteredDeliveries.map(d => [
         `"D-${d.id?.toString().padStart(4, '0')}"`,
         `"${new Date(d.date).toLocaleDateString()}"`,
-        `"${d.supplierName}"`,
-        `"${d.purchaseOrderId || 'N/A'}"`,
+        `"${d.supplier_name}"`,
+        `"${d.purchase_order_id || 'N/A'}"`,
         d.items.length
       ].join(','))
     ].join('\n');
@@ -117,12 +139,12 @@ export default function Deliveries() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {delivery.supplierName}
+                      {delivery.supplier_name}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-400">
-                      {delivery.purchaseOrderId || 'N/A'}
+                      {delivery.purchase_order_id || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4">

@@ -77,14 +77,14 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Customer:</span>
-              <span className="font-medium">{sale.customerName || 'Walk-in'}</span>
+              <span className="font-medium">{sale.customer_name || 'Walk-in'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Payment:</span>
               <span className="font-medium">
-                {sale.paymentMethod}
-                {sale.paymentMethod === 'Mpesa' && sale.transactionCode && (
-                  <span className="ml-1 text-slate-400">({sale.transactionCode})</span>
+                {sale.payment_method}
+                {sale.payment_method === 'Mpesa' && sale.transaction_code && (
+                  <span className="ml-1 text-slate-400">({sale.transaction_code})</span>
                 )}
               </span>
             </div>
@@ -131,7 +131,7 @@ export default function ViewSaleModal({ isOpen, onClose, sale }: ViewSaleModalPr
             )}
             <div className="flex justify-between text-lg font-bold mt-2">
               <span>TOTAL:</span>
-              <span>{formatPrice(sale.totalAmount)}</span>
+              <span>{formatPrice(sale.total_amount)}</span>
             </div>
           </div>
 

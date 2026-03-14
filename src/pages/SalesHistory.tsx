@@ -1,20 +1,43 @@
 import { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Sale } from '../db/db';
 import { Search, Filter, Download, FileText, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import ViewSaleModal from '../components/ViewSaleModal';
+import { supabase } from '../lib/supabase';
+import { useEffect } from 'react';
 
 export default function SalesHistory() {
-  const sales = useLiveQuery(() => db.sales.reverse().toArray(), []) || [];
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
+  const fetchSales = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      setSales(data || []);
+    } catch (err) {
+      console.error("Failed to fetch sales:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSales();
+  }, []);
+
   const filteredSales = sales.filter(sale => {
     const matchesSearch = 
-      sale.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (sale.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       sale.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
@@ -37,9 +60,9 @@ export default function SalesHistory() {
       ...filteredSales.map(s => [
         `"S-${s.id?.toString().padStart(4, '0')}"`,
         `"${new Date(s.date).toLocaleDateString()}"`,
-        `"${s.customerName || 'Walk-in Customer'}"`,
-        `"${s.paymentMethod}"`,
-        s.totalAmount,
+        `"${s.customer_name || 'Walk-in Customer'}"`,
+        `"${s.payment_method}"`,
+        s.total_amount,
         s.items.length
       ].join(','))
     ].join('\n');
@@ -127,21 +150,21 @@ export default function SalesHistory() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {sale.customerName || 'Walk-in Customer'}
+                      {sale.customer_name || 'Walk-in Customer'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      sale.paymentMethod === 'Cash' 
+                      sale.payment_method === 'Cash' 
                         ? 'bg-emerald-500/10 text-emerald-500' 
                         : 'bg-blue-500/10 text-blue-500'
                     }`}>
-                      {sale.paymentMethod}
+                      {sale.payment_method}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-white">
-                      {formatPrice(sale.totalAmount)}
+                      {formatPrice(sale.total_amount)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
