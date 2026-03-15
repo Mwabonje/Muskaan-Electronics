@@ -242,7 +242,7 @@ export default function PurchaseOrders() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {(role === "admin" || role === "super admin") && (
+                      {(role === "Admin" || role === "Super Admin") && (
                         <>
                           <button
                             onClick={() => handleEditLPO(lpo)}

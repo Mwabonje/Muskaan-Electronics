@@ -298,7 +298,7 @@ export default function Quotes() {
                             View
                           </span>
                         </button>
-                        {(role === "admin" || role === "super admin") && (
+                        {(role === "Admin" || role === "Super Admin") && (
                           <>
                             <button
                               onClick={() => handleEditQuote(quote)}
