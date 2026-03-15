@@ -199,7 +199,6 @@ export default function CreateLPOModal({
         expectedDeliveryDate: expectedDeliveryDate || undefined,
         notes: notes || undefined,
         status: "Pending" as const,
-        rejectionReason: "", // Clear rejection reason on resubmit
       };
 
       let lpoId;

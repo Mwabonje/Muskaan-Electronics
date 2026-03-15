@@ -63,7 +63,7 @@ export default function ViewLPOModal({
     try {
       await db.lpos.update(lpo.id!, {
         status: "Rejected",
-        rejectionReason: rejectionReason.trim(),
+        notes: lpo.notes ? `${lpo.notes}\n\nRejection Reason: ${rejectionReason.trim()}` : `Rejection Reason: ${rejectionReason.trim()}`,
       });
       setIsRejecting(false);
       setRejectionReason("");
@@ -144,12 +144,12 @@ export default function ViewLPOModal({
             </div>
           )}
 
-          {lpo.status === "Rejected" && lpo.rejectionReason && (
+          {lpo.status === "Rejected" && lpo.notes && lpo.notes.includes("Rejection Reason:") && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 print:hidden">
               <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-bold">LPO Rejected</p>
-                <p className="text-sm mt-1">{lpo.rejectionReason}</p>
+                <p className="text-sm mt-1">{lpo.notes.split("Rejection Reason:")[1]?.trim()}</p>
               </div>
             </div>
           )}

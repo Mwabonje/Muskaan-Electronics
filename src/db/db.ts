@@ -68,7 +68,6 @@ export interface PurchaseOrder {
   expectedDeliveryDate?: string;
   status: "Pending" | "Approved" | "Rejected" | "Delivered" | "Cancelled";
   notes?: string;
-  rejectionReason?: string;
 }
 
 export type LPO = PurchaseOrder; // Alias for PurchaseOrders.tsx
