@@ -422,7 +422,7 @@ export default function POS() {
             <div className="flex-1 overflow-y-auto p-8 bg-white text-slate-900 print:overflow-visible print:p-4">
               <div className="text-center mb-6">
                 <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-                  HARDWARE STORE
+                  MUSKAAN ELECTRONICS
                 </h1>
                 <p className="text-sm text-slate-600 mt-1">
                   123 Main Street, City

@@ -222,7 +222,7 @@ export default function LogDeliveryModal({
               </div>
               <div className="text-right">
                 <h2 className="text-xl font-bold text-blue-600">
-                  HARDWARE STORE
+                  MUSKAAN ELECTRONICS
                 </h2>
                 <p className="text-sm text-slate-600 mt-1">
                   123 Main Street, City

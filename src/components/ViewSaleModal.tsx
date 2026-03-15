@@ -72,7 +72,7 @@ export default function ViewSaleModal({
           {/* Print Header */}
           <div className="text-center border-b border-slate-200 pb-4">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              HARDWARE STORE
+              MUSKAAN ELECTRONICS
             </h1>
             <p className="text-slate-600 mt-1">123 Main Street, City</p>
             <p className="text-slate-600">Tel: +254 700 000 000</p>

@@ -254,7 +254,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
           <div className="flex-1 overflow-y-auto p-8 bg-white text-slate-800 print:overflow-visible print:p-4">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-black text-slate-900 mb-1">
-                HARDWARE STORE
+                MUSKAAN ELECTRONICS
               </h1>
               <p className="text-sm text-slate-500">123 Main Street, City</p>
               <p className="text-sm text-slate-500">Tel: +254 700 000 000</p>
