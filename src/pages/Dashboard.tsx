@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Banknote, 
-  ShoppingBag, 
-  PieChart, 
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Banknote,
+  ShoppingBag,
+  PieChart,
   AlertTriangle,
   Filter,
   Download,
@@ -15,123 +15,129 @@ import {
   History,
   List,
   FileText,
-  CheckCircle2,
-  MessageSquare
-} from 'lucide-react';
-import { db } from '../db/db';
-import { supabase } from '../lib/supabase';
-import { useEffect } from 'react';
-import NewSaleModal from '../components/NewSaleModal';
-import NewQuoteModal from '../components/NewQuoteModal';
-import CreateLPOModal from '../components/CreateLPOModal';
-import LogDeliveryModal from '../components/LogDeliveryModal';
-import CustomerReturnModal from '../components/CustomerReturnModal';
-import { useAuth } from '../context/AuthContext';
+} from "lucide-react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db } from "../db/db";
+import NewSaleModal from "../components/NewSaleModal";
+import NewQuoteModal from "../components/NewQuoteModal";
+import CreateLPOModal from "../components/CreateLPOModal";
+import LogDeliveryModal from "../components/LogDeliveryModal";
+import CustomerReturnModal from "../components/CustomerReturnModal";
 
 export default function Dashboard() {
-  const { user, role } = useAuth();
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
   const [isCreateLPOModalOpen, setIsCreateLPOModalOpen] = useState(false);
   const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
-  const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] = useState(false);
-  
-  const [products, setProducts] = useState<any[]>([]);
-  const [todaysSales, setTodaysSales] = useState<any[]>([]);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] =
+    useState(false);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+  const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
+  const lowStockCount =
+    useLiveQuery(
+      () => db.products.where("status").equals("Low Stock").count(),
+      [],
+    ) || 0;
+  const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
-      const [productsRes, salesRes, activitiesRes] = await Promise.all([
-        supabase.from('products').select('*'),
-        supabase.from('sales').select('*').gte('date', today.toISOString()),
-        supabase.from('activities').select('*').order('date', { ascending: false }).limit(10)
-      ]);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-      if (productsRes.error) throw productsRes.error;
-      if (salesRes.error) throw salesRes.error;
-      if (activitiesRes.error) throw activitiesRes.error;
+  const todaysSales =
+    useLiveQuery(
+      () => db.sales.filter((sale) => new Date(sale.date) >= today).toArray(),
+      [],
+    ) || [];
 
-      setProducts(productsRes.data || []);
-      setTodaysSales(salesRes.data || []);
-      setActivities(activitiesRes.data || []);
-    } catch (err) {
-      console.error("Failed to fetch dashboard data:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const todaysRevenue = todaysSales.reduce(
+    (sum, sale) => sum + sale.totalAmount,
+    0,
+  );
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const productsCount = products.length;
-  const lowStockCount = products.filter(p => p.status === 'Low Stock').length;
-  
-  const filteredActivities = activities.filter(activity => {
-    if (role === 'Super Admin') return true;
-    if (role === 'Cashier') return activity.user_id === user?.id;
-    // For Managers/Admins
-    return activity.user_role !== 'Super Admin';
-  });
-
-  const todaysRevenue = todaysSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
-  
   const todaysProfit = todaysSales.reduce((sum, sale) => {
-    return sum + (sale.items || []).reduce((itemSum: number, item: any) => {
-      const product = products.find(p => p.id === item.product_id);
-      const cost = product ? (typeof product.cost_price === 'string' ? parseFloat(product.cost_price.replace(/[^0-9.-]+/g, '')) : product.cost_price) : 0;
-      return itemSum + ((item.price - cost) * item.quantity);
-    }, 0);
+    return (
+      sum +
+      sale.items.reduce((itemSum, item) => {
+        const product = products.find((p) => p.id === item.productId);
+        const cost = product
+          ? typeof product.cost === "number"
+            ? product.cost
+            : parseFloat(product.cost.toString().replace(/[^0-9.-]+/g, "")) || 0
+          : 0;
+        return itemSum + (item.price - cost) * item.quantity;
+      }, 0)
+    );
   }, 0);
 
   const totalInventoryValue = products.reduce((sum, product) => {
-    const cost = typeof product.cost_price === 'string' ? parseFloat(product.cost_price.replace(/[^0-9.-]+/g, '')) : product.cost_price;
-    return sum + (cost * product.stock);
+    const cost =
+      typeof product.cost === "number"
+        ? product.cost
+        : parseFloat(product.cost.toString().replace(/[^0-9.-]+/g, "")) || 0;
+    return sum + cost * product.stock;
   }, 0);
 
-  const formatPrice = (priceStr: string | number) => {
-    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+  const recentSales = useLiveQuery(() => db.sales.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
+  const recentLPOs = useLiveQuery(() => db.lpos.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
+  const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
+
+  const recentActivities = [...recentSales.map(s => ({ ...s, type: 'Sale' })), 
+                            ...recentLPOs.map(l => ({ ...l, type: 'LPO' })),
+                            ...recentDeliveries.map(d => ({ ...d, type: 'Delivery' }))]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+
+  const formatPrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr == null) return "Ksh 0.00";
+    if (typeof priceStr === "number")
+      return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const [inventoryFilter, setInventoryFilter] = useState('All');
+  const [inventoryFilter, setInventoryFilter] = useState("All");
 
-  const filteredProducts = products.filter(p => {
-    if (inventoryFilter === 'All') return true;
+  const filteredProducts = products.filter((p) => {
+    if (inventoryFilter === "All") return true;
     return p.status === inventoryFilter;
   });
 
   const handleExportCSV = () => {
     if (!filteredProducts || filteredProducts.length === 0) return;
-    
-    const headers = ['Item Name', 'Category', 'Stock Level', 'Unit', 'Status', 'Cost', 'Selling'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredProducts.map(p => [
-        `"${p.name}"`,
-        `"${p.category}"`,
-        p.stock,
-        '"Pcs"',
-        `"${p.status}"`,
-        p.cost_price,
-        p.selling_price
-      ].join(','))
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const headers = [
+      "Item Name",
+      "Category",
+      "Stock Level",
+      "Unit",
+      "Status",
+      "Cost",
+      "Selling",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...filteredProducts.map((p) =>
+        [
+          `"${p.name}"`,
+          `"${p.category}"`,
+          p.stock,
+          '"Pcs"',
+          `"${p.status}"`,
+          p.cost,
+          p.selling,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `inventory_export_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -143,59 +149,75 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Total Inventory Value</p>
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">
+              Total Inventory Value
+            </p>
             <div className="p-1.5 bg-blue-900/30 rounded-lg text-blue-500">
               <Banknote className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">{formatPrice(totalInventoryValue)}</p>
+            <p className="text-2xl font-bold text-white mb-1">
+              {formatPrice(totalInventoryValue)}
+            </p>
             <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
               <TrendingUpIcon className="w-3 h-3" /> Based on cost price
             </p>
           </div>
         </div>
-        
+
         <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Today's Revenue</p>
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">
+              Today's Revenue
+            </p>
             <div className="p-1.5 bg-purple-900/30 rounded-lg text-purple-500">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">{formatPrice(todaysRevenue)}</p>
+            <p className="text-2xl font-bold text-white mb-1">
+              {formatPrice(todaysRevenue)}
+            </p>
             <p className="text-[10px] font-bold text-purple-500 uppercase">
               {todaysSales.length} Transactions
             </p>
           </div>
         </div>
-        
+
         <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Today's Profit</p>
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">
+              Today's Profit
+            </p>
             <div className="p-1.5 bg-teal-900/30 rounded-lg text-teal-500">
               <PieChart className="w-4 h-4" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">{formatPrice(todaysProfit)}</p>
+            <p className="text-2xl font-bold text-white mb-1">
+              {formatPrice(todaysProfit)}
+            </p>
             <p className="text-[10px] font-bold text-teal-500 uppercase">
               Net Income (Est)
             </p>
           </div>
         </div>
-        
+
         <div className="bg-[#0B1120] p-5 rounded-xl border border-slate-800 shadow-sm flex flex-col justify-between h-32 relative overflow-hidden">
           <AlertTriangle className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-800/50" />
           <div className="flex justify-between items-start relative z-10">
-            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">Low Stock Items</p>
+            <p className="text-slate-400 text-xs font-bold tracking-wider uppercase">
+              Low Stock Items
+            </p>
             <div className="p-1.5 bg-slate-800 rounded-lg text-slate-400">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
           <div className="relative z-10">
-            <p className="text-2xl font-bold text-white mb-1">{lowStockCount} Items</p>
+            <p className="text-2xl font-bold text-white mb-1">
+              {lowStockCount} Items
+            </p>
             <p className="text-[10px] font-bold text-emerald-500 uppercase">
               All Stocked Up
             </p>
@@ -209,10 +231,12 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <List className="w-5 h-5 text-slate-400" />
-              <h2 className="text-lg font-bold text-white">Inventory Overview</h2>
+              <h2 className="text-lg font-bold text-white">
+                Inventory Overview
+              </h2>
             </div>
             <div className="flex items-center gap-3">
-              <select 
+              <select
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors outline-none"
                 value={inventoryFilter}
                 onChange={(e) => setInventoryFilter(e.target.value)}
@@ -222,7 +246,7 @@ export default function Dashboard() {
                 <option value="Low Stock">Low Stock</option>
                 <option value="Out of Stock">Out of Stock</option>
               </select>
-              <button 
+              <button
                 onClick={handleExportCSV}
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors"
               >
@@ -237,38 +261,70 @@ export default function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-800">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Item Name</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Category</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Stock Level</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Unit</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">Price</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      Item Name
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      Category
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      Stock Level
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      Unit
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
+                      Price
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-sm text-slate-500"
+                      >
                         No items found matching your criteria.
                       </td>
                     </tr>
                   ) : (
                     filteredProducts.slice(0, 5).map((product) => (
-                      <tr key={product.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-white">{product.name}</td>
-                        <td className="px-6 py-4 text-sm text-slate-400">{product.category}</td>
-                        <td className="px-6 py-4 text-sm text-slate-400">{product.stock}</td>
-                        <td className="px-6 py-4 text-sm text-slate-400">Pcs</td>
+                      <tr
+                        key={product.id}
+                        className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors"
+                      >
+                        <td className="px-6 py-4 text-sm font-medium text-white">
+                          {product.name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          {product.category}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          {product.stock}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-400">
+                          Pcs
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full whitespace-nowrap ${
-                            product.status === 'In Stock' ? 'bg-emerald-500/10 text-emerald-500' :
-                            product.status === 'Low Stock' ? 'bg-amber-500/10 text-amber-500' :
-                            'bg-rose-500/10 text-rose-500'
-                          }`}>
+                          <span
+                            className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full whitespace-nowrap ${
+                              product.status === "In Stock"
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : product.status === "Low Stock"
+                                  ? "bg-amber-500/10 text-amber-500"
+                                  : "bg-rose-500/10 text-rose-500"
+                            }`}
+                          >
                             {product.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300 text-right whitespace-nowrap">{formatPrice(product.selling_price)}</td>
+                        <td className="px-6 py-4 text-sm text-slate-300 text-right whitespace-nowrap">
+                          {formatPrice(product.selling)}
+                        </td>
                       </tr>
                     ))
                   )}
@@ -284,7 +340,13 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="text-yellow-500">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
                   <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" />
                 </svg>
               </div>
@@ -292,7 +354,7 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={() => setIsNewSaleModalOpen(true)}
                 className="w-full flex items-center justify-between p-4 bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors group"
               >
@@ -302,13 +364,15 @@ export default function Dashboard() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-white">New Sale</p>
-                    <p className="text-[10px] text-blue-200">Record customer transaction</p>
+                    <p className="text-[10px] text-blue-200">
+                      Record customer transaction
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-blue-200 group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsNewQuoteModalOpen(true)}
                 className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
               >
@@ -318,13 +382,15 @@ export default function Dashboard() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-white">New Quote</p>
-                    <p className="text-[10px] text-slate-500">Generate estimate for clients</p>
+                    <p className="text-[10px] text-slate-500">
+                      Generate estimate for clients
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsCreateLPOModalOpen(true)}
                 className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
               >
@@ -334,13 +400,15 @@ export default function Dashboard() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-white">Create LPO</p>
-                    <p className="text-[10px] text-slate-500">Order stock from suppliers</p>
+                    <p className="text-[10px] text-slate-500">
+                      Order stock from suppliers
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsLogDeliveryModalOpen(true)}
                 className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
               >
@@ -350,13 +418,15 @@ export default function Dashboard() {
                   </div>
                   <div className="text-left">
                     <p className="text-sm font-bold text-white">Log Delivery</p>
-                    <p className="text-[10px] text-slate-500">Restock inventory items</p>
+                    <p className="text-[10px] text-slate-500">
+                      Restock inventory items
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsCustomerReturnModalOpen(true)}
                 className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
               >
@@ -365,8 +435,12 @@ export default function Dashboard() {
                     <RotateCcw className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-bold text-white">Customer Return</p>
-                    <p className="text-[10px] text-slate-500">Refund or exchange items</p>
+                    <p className="text-sm font-bold text-white">
+                      Customer Return
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      Refund or exchange items
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-1 transition-transform" />
@@ -374,100 +448,91 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Recent Activity */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <History className="w-5 h-5 text-slate-400" />
               <h2 className="text-lg font-bold text-white">Recent Activity</h2>
             </div>
-            
-            <div className="bg-[#0B1120] border border-slate-800 rounded-2xl p-6">
-              <div className="space-y-8 relative">
-                {/* Timeline Line */}
-                {filteredActivities.length > 1 && (
-                  <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-slate-800" />
-                )}
 
-                {filteredActivities.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-slate-500">No recent activity</p>
-                  </div>
-                ) : (
-                  filteredActivities.map((activity, index) => (
-                    <div key={activity.id} className="relative flex gap-4 group">
-                      {/* Status Icon */}
-                      <div className="relative z-10 flex-shrink-0">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center border-4 border-[#0B1120] ${
-                          activity.type === 'Sale' ? 'bg-emerald-500/10 text-emerald-500' :
-                          activity.type === 'Return' ? 'bg-amber-500/10 text-amber-500' :
-                          'bg-blue-500/10 text-blue-500'
+            <div className="bg-[#0B1120] border border-slate-800 rounded-xl overflow-hidden">
+              <div className="divide-y divide-slate-800/50">
+                {recentActivities.length > 0 ? (
+                  recentActivities.map((activity, index) => (
+                    <div key={index} className="p-4 hover:bg-[#1e293b]/50 transition-colors flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          activity.type === 'Sale' ? 'bg-emerald-500/10 text-emerald-400' :
+                          activity.type === 'LPO' ? 'bg-purple-500/10 text-purple-400' :
+                          'bg-blue-500/10 text-blue-400'
                         }`}>
-                          <CheckCircle2 className="w-5 h-5" />
+                          {activity.type === 'Sale' && <ShoppingCart className="w-4 h-4" />}
+                          {activity.type === 'LPO' && <FileText className="w-4 h-4" />}
+                          {activity.type === 'Delivery' && <Truck className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">
+                            {activity.type === 'Sale' ? `Sale #${activity.id ? activity.id.toString().padStart(4, '0') : '0000'}` :
+                             activity.type === 'LPO' ? `LPO #${activity.id ? activity.id.toString().padStart(4, '0') : '0000'}` :
+                             `Delivery #${activity.id ? activity.id.toString().padStart(4, '0') : '0000'}`}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {new Date(activity.date).toLocaleString()}
+                          </p>
                         </div>
                       </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <div>
-                            <h3 className="text-sm font-bold text-white leading-none mb-1">
-                              {activity.type === 'Sale' ? 'Sale Completed' : 
-                               activity.type === 'Quote' ? 'Quote Generated' : 
-                               activity.type === 'Return' ? 'Returned Processed' :
-                               activity.type === 'Log' ? 'System Log' :
-                               activity.type}
-                            </h3>
-                            <p className="text-xs text-slate-400 line-clamp-2">
-                              {activity.description}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">
-                                {new Date(activity.date).toISOString().replace('T', ' ').split('.')[0]}Z
-                              </span>
-                              <span className="text-[10px] text-slate-500">•</span>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase">
-                                BY {activity.user_role}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <button className="p-1.5 text-slate-600 hover:text-slate-400 transition-colors">
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <div className="text-right">
+                        {activity.type !== 'Delivery' && (
+                          <p className="text-sm font-bold text-white">
+                            {formatPrice((activity as any).totalAmount)}
+                          </p>
+                        )}
+                        <p className="text-xs text-slate-400">
+                          {activity.type === 'Sale' ? (activity as any).customerName || 'Walk-in' :
+                           activity.type === 'LPO' ? (activity as any).supplierName :
+                           (activity as any).supplierName}
+                        </p>
                       </div>
                     </div>
                   ))
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-sm">
+                    No recent activities found.
+                  </div>
                 )}
               </div>
-
-              <Link to="/sales" className="mt-8 block w-full text-center text-[10px] font-bold text-blue-500 hover:text-blue-400 tracking-[0.2em] uppercase transition-colors">
-                View All Transactions
-              </Link>
             </div>
+
+            <Link
+              to="/sales"
+              className="w-full flex justify-center py-4 bg-[#0B1120] border border-slate-800 hover:bg-[#1e293b] rounded-xl text-xs font-bold text-blue-500 tracking-wider uppercase transition-colors"
+            >
+              View All Transactions
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Modals */}
-      <NewSaleModal 
-        isOpen={isNewSaleModalOpen} 
-        onClose={() => setIsNewSaleModalOpen(false)} 
+      <NewSaleModal
+        isOpen={isNewSaleModalOpen}
+        onClose={() => setIsNewSaleModalOpen(false)}
       />
-      <NewQuoteModal 
-        isOpen={isNewQuoteModalOpen} 
-        onClose={() => setIsNewQuoteModalOpen(false)} 
+      <NewQuoteModal
+        isOpen={isNewQuoteModalOpen}
+        onClose={() => setIsNewQuoteModalOpen(false)}
       />
-      <CreateLPOModal 
-        isOpen={isCreateLPOModalOpen} 
-        onClose={() => setIsCreateLPOModalOpen(false)} 
+      <CreateLPOModal
+        isOpen={isCreateLPOModalOpen}
+        onClose={() => setIsCreateLPOModalOpen(false)}
       />
-      <LogDeliveryModal 
-        isOpen={isLogDeliveryModalOpen} 
-        onClose={() => setIsLogDeliveryModalOpen(false)} 
+      <LogDeliveryModal
+        isOpen={isLogDeliveryModalOpen}
+        onClose={() => setIsLogDeliveryModalOpen(false)}
       />
-      <CustomerReturnModal 
-        isOpen={isCustomerReturnModalOpen} 
-        onClose={() => setIsCustomerReturnModalOpen(false)} 
+      <CustomerReturnModal
+        isOpen={isCustomerReturnModalOpen}
+        onClose={() => setIsCustomerReturnModalOpen(false)}
       />
     </div>
   );
@@ -490,5 +555,5 @@ function TrendingUpIcon(props: React.SVGProps<SVGSVGElement>) {
       <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
       <polyline points="16 7 22 7 22 13" />
     </svg>
-  )
+  );
 }

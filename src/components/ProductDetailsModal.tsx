@@ -1,46 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Package, History, ArrowUpRight, ArrowDownRight, RefreshCw, ShoppingCart, RotateCcw } from 'lucide-react';
-import { db, Product, StockHistory } from '../db/db';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Save,
+  Package,
+  History,
+  ArrowUpRight,
+  ArrowDownRight,
+  RefreshCw,
+  ShoppingCart,
+  RotateCcw,
+} from "lucide-react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db, Product } from "../db/db";
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product | null;
-  initialTab?: 'details' | 'history';
+  initialTab?: "details" | "history";
+  onProductAdded?: (productId: number) => void;
 }
 
-export default function ProductDetailsModal({ isOpen, onClose, product, initialTab = 'details' }: ProductDetailsModalProps) {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'details' | 'history'>(initialTab);
+export default function ProductDetailsModal({
+  isOpen,
+  onClose,
+  product,
+  initialTab = "details",
+  onProductAdded,
+}: ProductDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState<"details" | "history">(initialTab);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
-
-  const fetchStockHistory = async () => {
-    if (!product?.id) return;
-    try {
-      const { data, error } = await supabase
-        .from('stock_history')
-        .select('*')
-        .eq('product_id', product.id)
-        .order('date', { ascending: false });
-      
-      if (error) throw error;
-      setStockHistory(data || []);
-    } catch (err) {
-      console.error("Failed to fetch stock history:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen && product?.id) {
-      fetchStockHistory();
-    }
-  }, [isOpen, product?.id]);
+  // Fetch stock history for this product
+  const stockHistory =
+    useLiveQuery(
+      () =>
+        product?.id
+          ? db.stockHistory
+              .where("productId")
+              .equals(product.id)
+              .reverse()
+              .sortBy("date")
+          : Promise.resolve([]),
+      [product?.id],
+    ) || [];
 
   useEffect(() => {
     if (isOpen && product) {
@@ -48,25 +53,27 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
       setActiveTab(initialTab);
     } else if (isOpen && !product) {
       setFormData({
-        name: '',
-        brand: '',
-        category: '',
-        cost_price: '',
-        selling_price: '',
+        name: "",
+        brand: "",
+        category: "",
+        cost: "",
+        selling: "",
         stock: 0,
-        status: 'In Stock'
+        status: "In Stock",
       });
-      setActiveTab('details');
+      setActiveTab("details");
     }
   }, [isOpen, product, initialTab]);
 
   if (!isOpen) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: name === 'stock' || name === 'min_stock' ? Number(value) : value
+      [name]: name === "stock" || name === "minStock" ? Number(value) : value,
     }));
   };
 
@@ -78,68 +85,57 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         // Update existing
         const oldStock = product.stock;
         const newStock = Number(formData.stock) || 0;
-        
-        let status = formData.status || 'In Stock';
-        if (newStock <= 0) status = 'Out of Stock';
-        else if (newStock <= (formData.min_stock || 5)) status = 'Low Stock';
-        else status = 'In Stock';
 
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ ...formData, status, stock: newStock })
-          .eq('id', product.id);
-        
-        if (updateError) throw updateError;
+        let status = formData.status || "In Stock";
+        if (newStock <= 0) status = "Out of Stock";
+        else if (newStock <= (formData.minStock || 5)) status = "Low Stock";
+        else status = "In Stock";
+
+        await db.products.update(product.id, {
+          ...formData,
+          status,
+          stock: newStock,
+        });
 
         // Log stock adjustment if changed
         if (oldStock !== newStock) {
-          const changeType = newStock > oldStock ? 'Addition' : 'Deduction';
-          await supabase.from('stock_history').insert([{
-            product_id: product.id,
-            change_type: 'Adjustment',
-            quantity_change: Math.abs(newStock - oldStock),
-            previous_stock: oldStock,
-            new_stock: newStock,
+          const changeType = newStock > oldStock ? "Addition" : "Deduction";
+          await db.stockHistory.add({
+            productId: product.id,
+            changeType: "Adjustment",
+            quantityChange: Math.abs(newStock - oldStock),
+            previousStock: oldStock,
+            newStock: newStock,
             date: new Date().toISOString(),
-            reason: 'Manual adjustment via product details'
-          }]);
-
-          // Log activity
-          await supabase.from('activities').insert([{
-            user_id: user?.id || 0,
-            user_name: user?.name || 'System',
-            user_role: user?.role || 'Admin',
-            type: 'Stock Adjustment',
-            description: `Manually adjusted stock for ${product.name} from ${oldStock} to ${newStock}`,
-            date: new Date().toISOString(),
-            reference_id: product.id
-          }]);
+            reason: "Manual adjustment via product details",
+          });
         }
       } else {
         // Add new
         const newStock = Number(formData.stock) || 0;
-        let status = 'In Stock';
-        if (newStock <= 0) status = 'Out of Stock';
-        else if (newStock <= (formData.min_stock || 5)) status = 'Low Stock';
+        let status = "In Stock";
+        if (newStock <= 0) status = "Out of Stock";
+        else if (newStock <= (formData.minStock || 5)) status = "Low Stock";
 
-        const { data, error: insertError } = await supabase
-          .from('products')
-          .insert([{ ...formData, status, stock: newStock }])
-          .select();
-        
-        if (insertError) throw insertError;
-        const newProduct = data?.[0];
-        
-        if (newStock > 0 && newProduct) {
-          await supabase.from('stock_history').insert([{
-            product_id: newProduct.id,
-            change_type: 'Addition',
-            quantity_change: newStock,
-            previous_stock: 0,
-            new_stock: newStock,
+        const newId = await db.products.add({
+          ...formData,
+          status,
+          stock: newStock,
+        } as Product);
+
+        if (newStock > 0) {
+          await db.stockHistory.add({
+            productId: newId as number,
+            changeType: "Addition",
+            quantityChange: newStock,
+            previousStock: 0,
+            newStock: newStock,
             date: new Date().toISOString(),
-            reason: 'Initial stock on creation'
-          }]);
+            reason: "Initial stock on creation",
+          });
+        }
+        if (onProductAdded) {
+          onProductAdded(newId as number);
         }
       }
       onClose();
@@ -153,19 +149,28 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
 
   const getChangeIcon = (type: string) => {
     switch (type) {
-      case 'Addition': return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
-      case 'Deduction': return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
-      case 'Sale': return <ShoppingCart className="w-4 h-4 text-blue-500" />;
-      case 'Return': return <RotateCcw className="w-4 h-4 text-amber-500" />;
-      case 'Adjustment': return <RefreshCw className="w-4 h-4 text-purple-500" />;
-      default: return <Package className="w-4 h-4 text-slate-500" />;
+      case "Addition":
+        return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+      case "Deduction":
+        return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
+      case "Sale":
+        return <ShoppingCart className="w-4 h-4 text-blue-500" />;
+      case "Return":
+        return <RotateCcw className="w-4 h-4 text-amber-500" />;
+      case "Adjustment":
+        return <RefreshCw className="w-4 h-4 text-purple-500" />;
+      default:
+        return <Package className="w-4 h-4 text-slate-500" />;
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose}></div>
-      
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+      <div
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+        onClick={onClose}
+      ></div>
+
       <div className="relative w-full max-w-3xl bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col max-h-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50">
@@ -175,12 +180,17 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
-                {product ? 'Edit Product' : 'New Product'}
+                {product ? "Edit Product" : "New Product"}
               </h2>
-              {product && <p className="text-xs text-slate-500">{product.name}</p>}
+              {product && (
+                <p className="text-xs text-slate-500">{product.name}</p>
+              )}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -189,17 +199,21 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         {product && (
           <div className="flex border-b border-slate-200 px-5 bg-slate-50">
             <button
-              onClick={() => setActiveTab('details')}
+              onClick={() => setActiveTab("details")}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
-                activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
+                activeTab === "details"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
               Product Details
             </button>
             <button
-              onClick={() => setActiveTab('history')}
+              onClick={() => setActiveTab("history")}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
+                activeTab === "history"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
               <History className="w-4 h-4" />
@@ -216,47 +230,55 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
               <p>{error}</p>
             </div>
           )}
-          {activeTab === 'details' ? (
+          {activeTab === "details" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-4 sm:col-span-2">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Product Name</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Product Name
+                  </label>
                   <input
                     type="text"
                     name="name"
-                    value={formData.name || ''}
+                    value={formData.name || ""}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. iPhone 15 Pro"
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Brand</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Brand
+                  </label>
                   <input
                     type="text"
                     name="brand"
-                    value={formData.brand || ''}
+                    value={formData.brand || ""}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Apple"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Cost Price</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Cost Price
+                  </label>
                   <input
                     type="text"
-                    name="cost_price"
-                    value={formData.cost_price || ''}
+                    name="cost"
+                    value={formData.cost || ""}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Ksh 999.00"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Current Stock</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Current Stock
+                  </label>
                   <input
                     type="number"
                     name="stock"
@@ -269,33 +291,39 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Category</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Category
+                  </label>
                   <input
                     type="text"
                     name="category"
-                    value={formData.category || ''}
+                    value={formData.category || ""}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Smartphones"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Selling Price</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Selling Price
+                  </label>
                   <input
                     type="text"
-                    name="selling_price"
-                    value={formData.selling_price || ''}
+                    name="selling"
+                    value={formData.selling || ""}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                     placeholder="e.g. Ksh 1,199.00"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Minimum Stock Alert</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Minimum Stock Alert
+                  </label>
                   <input
                     type="number"
-                    name="min_stock"
-                    value={formData.min_stock || 5}
+                    name="minStock"
+                    value={formData.minStock || 5}
                     onChange={handleChange}
                     className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm text-slate-900 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                   />
@@ -308,18 +336,30 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                 <div className="text-center py-12 text-slate-500">
                   <History className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                   <p className="text-base font-medium">No history found</p>
-                  <p className="text-sm mt-1">Stock changes will appear here.</p>
+                  <p className="text-sm mt-1">
+                    Stock changes will appear here.
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-lg border border-slate-200">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Type</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Change</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">New Stock</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Reason</th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">
+                          Change
+                        </th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">
+                          New Stock
+                        </th>
+                        <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">
+                          Reason
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -330,26 +370,42 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                                {getChangeIcon(record.change_type)}
-                                <span className="text-sm font-medium text-slate-700">{record.change_type}</span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-bold text-right">
-                              <span className={
-                                record.change_type === 'Addition' || record.change_type === 'Return' ? 'text-emerald-600' :
-                                record.change_type === 'Deduction' || record.change_type === 'Sale' ? 'text-rose-600' :
-                                'text-purple-600'
-                              }>
-                                {record.change_type === 'Addition' || record.change_type === 'Return' ? '+' :
-                                 record.change_type === 'Deduction' || record.change_type === 'Sale' ? '-' : ''}
-                                {record.quantity_change}
+                              {getChangeIcon(record.changeType)}
+                              <span className="text-sm font-medium text-slate-700">
+                                {record.changeType}
                               </span>
-                            </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
-                              {record.new_stock}
-                            </td>
-                          <td className="px-4 py-3 text-sm text-slate-500 truncate max-w-[150px]" title={record.reason}>
-                            {record.reason || '-'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-right">
+                            <span
+                              className={
+                                record.changeType === "Addition" ||
+                                record.changeType === "Return"
+                                  ? "text-emerald-600"
+                                  : record.changeType === "Deduction" ||
+                                      record.changeType === "Sale"
+                                    ? "text-rose-600"
+                                    : "text-purple-600"
+                              }
+                            >
+                              {record.changeType === "Addition" ||
+                              record.changeType === "Return"
+                                ? "+"
+                                : record.changeType === "Deduction" ||
+                                    record.changeType === "Sale"
+                                  ? "-"
+                                  : ""}
+                              {record.quantityChange}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right">
+                            {record.newStock}
+                          </td>
+                          <td
+                            className="px-4 py-3 text-sm text-slate-500 truncate max-w-[150px]"
+                            title={record.reason}
+                          >
+                            {record.reason || "-"}
                           </td>
                         </tr>
                       ))}
@@ -362,7 +418,7 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
         </div>
 
         {/* Footer */}
-        {activeTab === 'details' && (
+        {activeTab === "details" && (
           <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
             <button
               onClick={onClose}
@@ -376,7 +432,7 @@ export default function ProductDetailsModal({ isOpen, onClose, product, initialT
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20 disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {isSaving ? 'Saving...' : 'Save Product'}
+              {isSaving ? "Saving..." : "Save Product"}
             </button>
           </div>
         )}

@@ -1,70 +1,74 @@
-import { useState, useEffect } from 'react';
-import { Delivery } from '../db/db';
-import { Search, Download, Truck, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import ViewDeliveryModal from '../components/ViewDeliveryModal';
-import { supabase } from '../lib/supabase';
+import { useState } from "react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db, Delivery } from "../db/db";
+import {
+  Search,
+  Download,
+  Truck,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
+import ViewDeliveryModal from "../components/ViewDeliveryModal";
 
 export default function Deliveries() {
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const deliveries =
+    useLiveQuery(() => db.deliveries.reverse().toArray(), []) || [];
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
+    null,
+  );
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
-  const fetchDeliveries = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('deliveries')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (error) throw error;
-      setDeliveries(data || []);
-    } catch (err) {
-      console.error("Failed to fetch deliveries:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDeliveries();
-  }, []);
-
-  const filteredDeliveries = deliveries.filter(delivery => {
-    const matchesSearch = 
-      (delivery.supplier_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredDeliveries = deliveries.filter((delivery) => {
+    const matchesSearch =
+      delivery.supplierName
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
       delivery.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredDeliveries.length / itemsPerPage);
-  const paginatedDeliveries = filteredDeliveries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedDeliveries = filteredDeliveries.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const handleExportCSV = () => {
     if (!filteredDeliveries || filteredDeliveries.length === 0) return;
-    
-    const headers = ['Delivery ID', 'Date', 'Supplier Name', 'LPO Number', 'Items Count'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredDeliveries.map(d => [
-        `"D-${d.id?.toString().padStart(4, '0')}"`,
-        `"${new Date(d.date).toLocaleDateString()}"`,
-        `"${d.supplier_name}"`,
-        `"${d.purchase_order_id || 'N/A'}"`,
-        d.items.length
-      ].join(','))
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const headers = [
+      "Delivery ID",
+      "Date",
+      "Supplier Name",
+      "LPO Number",
+      "Items Count",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...filteredDeliveries.map((d) =>
+        [
+          `"D-${d.id?.toString().padStart(4, "0")}"`,
+          `"${new Date(d.date).toLocaleDateString()}"`,
+          `"${d.supplierName}"`,
+          `"${d.lpoNumber || "N/A"}"`,
+          d.items.length,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `deliveries_history_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `deliveries_history_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -79,11 +83,13 @@ export default function Deliveries() {
             <Truck className="w-6 h-6 text-blue-500" />
             Deliveries
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Track and manage incoming inventory deliveries</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Track and manage incoming inventory deliveries
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
@@ -116,20 +122,35 @@ export default function Deliveries() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-[#0f172a]/50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Delivery ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Supplier</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">LPO Number</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Items</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Delivery ID
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Supplier
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  LPO Number
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Items
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {paginatedDeliveries.map((delivery) => (
-                <tr key={delivery.id} className="hover:bg-[#1e293b]/50 transition-colors">
+                <tr
+                  key={delivery.id}
+                  className="hover:bg-[#1e293b]/50 transition-colors"
+                >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      D-{delivery.id?.toString().padStart(4, '0')}
+                      D-{delivery.id?.toString().padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -139,12 +160,12 @@ export default function Deliveries() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {delivery.supplier_name}
+                      {delivery.supplierName}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-400">
-                      {delivery.purchase_order_id || 'N/A'}
+                      {delivery.lpoNumber || "N/A"}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -153,7 +174,7 @@ export default function Deliveries() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedDelivery(delivery);
                         setIsViewModalOpen(true);
@@ -168,7 +189,10 @@ export default function Deliveries() {
               ))}
               {paginatedDeliveries.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
                     No deliveries found matching your criteria.
                   </td>
                 </tr>
@@ -180,18 +204,32 @@ export default function Deliveries() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-slate-800 bg-[#0f172a]/50 px-6 py-4">
           <div className="text-sm text-slate-500">
-            Showing <span className="font-medium text-slate-300">{filteredDeliveries.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, filteredDeliveries.length)}</span> of <span className="font-medium text-slate-300">{filteredDeliveries.length}</span> results
+            Showing{" "}
+            <span className="font-medium text-slate-300">
+              {filteredDeliveries.length === 0
+                ? 0
+                : (currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-slate-300">
+              {Math.min(currentPage * itemsPerPage, filteredDeliveries.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-slate-300">
+              {filteredDeliveries.length}
+            </span>{" "}
+            results
           </div>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -201,7 +239,7 @@ export default function Deliveries() {
         </div>
       </div>
 
-      <ViewDeliveryModal 
+      <ViewDeliveryModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         delivery={selectedDelivery}

@@ -1,49 +1,40 @@
-import { useState } from 'react';
-import { Search, Plus, Edit, Trash2, Shield, User as UserIcon, X, Mail, Lock, ChevronDown, Eye, EyeOff } from 'lucide-react';
-import { db, type User, type Role } from '../db/db';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
-import { useEffect } from 'react';
+import { useState } from "react";
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Shield,
+  User as UserIcon,
+  X,
+  Mail,
+  Lock,
+  ChevronDown,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db, type User, type Role } from "../db/db";
+import { useAuth } from "../context/AuthContext";
 
 export default function Users() {
   const { role: currentUserRole } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  
+  const [roleFilter, setRoleFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  // New User Form State
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    role: 'Cashier' as Role,
-    password: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    role: "Cashier" as Role,
+    password: "",
   });
-
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('id', { ascending: true });
-      
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (err) {
-      console.error("Failed to fetch users:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,53 +43,54 @@ export default function Users() {
       email: formData.email,
       password: formData.password,
       role: formData.role,
-      status: 'Active' as const,
-      last_login: 'Never'
+      status: "Active" as const,
+      lastLogin: "Never",
     };
-    
-    const { error } = await supabase.from('users').insert([newUser]);
-    if (error) {
-      alert("Failed to create user: " + error.message);
-      return;
-    }
 
+    await db.users.add(newUser);
     setIsModalOpen(false);
-    setFormData({ firstName: '', lastName: '', email: '', role: 'Cashier', password: '' });
-    fetchUsers();
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      role: "Cashier",
+      password: "",
+    });
   };
 
   const handleDeleteUser = async (id: number) => {
-    const { error } = await supabase.from('users').delete().eq('id', id);
-    if (error) {
-      alert("Failed to delete user: " + error.message);
-      return;
-    }
-    fetchUsers();
+    await db.users.delete(id);
   };
 
-  const filteredUsers = users.filter(user => {
-    if (currentUserRole !== 'Super Admin' && user.role === 'Super Admin') {
+  const filteredUsers = users.filter((user) => {
+    if (currentUserRole !== "Super Admin" && user.role === "Super Admin") {
       return false;
     }
-    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-           user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
-    const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
+    const matchesSearch =
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "All" || user.role === roleFilter;
+    const matchesStatus =
+      statusFilter === "All" || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const roles = ['All', 'Super Admin', 'Admin', 'Manager', 'Cashier'];
-  const statuses = ['All', 'Active', 'Inactive'];
+  const roles = ["All", "Super Admin", "Admin", "Manager", "Cashier"];
+  const statuses = ["All", "Active", "Inactive"];
 
   return (
     <div className="p-4 sm:p-8 relative">
       <div className="flex flex-wrap justify-between gap-3 mb-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black leading-tight tracking-tight">User Management</h1>
-          <p className="text-slate-500 text-base font-normal">Manage system access and user roles.</p>
+          <h1 className="text-3xl font-black leading-tight tracking-tight">
+            User Management
+          </h1>
+          <p className="text-slate-500 text-base font-normal">
+            Manage system access and user roles.
+          </p>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors"
           >
@@ -112,28 +104,36 @@ export default function Users() {
         <div className="flex-1">
           <div className="flex w-full items-center rounded-lg h-12 bg-white border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/50 px-4">
             <Search className="text-slate-400 w-5 h-5" />
-            <input 
-              className="w-full bg-transparent border-none outline-none px-3 text-sm" 
-              placeholder="Search users by name or email..." 
+            <input
+              className="w-full bg-transparent border-none outline-none px-3 text-sm"
+              placeholder="Search users by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
         <div className="flex gap-3 overflow-x-auto">
-          <select 
+          <select
             className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
-            {roles.map(r => <option key={r} value={r}>Role: {r}</option>)}
+            {roles.map((r) => (
+              <option key={r} value={r}>
+                Role: {r}
+              </option>
+            ))}
           </select>
-          <select 
+          <select
             className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            {statuses.map(s => <option key={s} value={s}>Status: {s}</option>)}
+            {statuses.map((s) => (
+              <option key={s} value={s}>
+                Status: {s}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -143,58 +143,85 @@ export default function Users() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-primary/10">
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">Last Login</th>
-                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider">
+                  Last Login
+                </th>
+                <th className="px-6 py-4 text-slate-600 text-sm font-semibold uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/5">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-primary/[0.02] transition-colors">
+                <tr
+                  key={user.id}
+                  className="hover:bg-primary/[0.02] transition-colors"
+                >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                         {user.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="text-slate-900 text-sm font-bold">{user.name}</p>
+                        <p className="text-slate-900 text-sm font-bold">
+                          {user.name}
+                        </p>
                         <p className="text-slate-500 text-xs">{user.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
-                      {user.role === 'Super Admin' ? (
+                      {user.role === "Super Admin" ? (
                         <Shield className="w-4 h-4 text-primary" />
                       ) : (
                         <UserIcon className="w-4 h-4 text-slate-400" />
                       )}
-                      <span className={`text-sm font-medium ${user.role === 'Super Admin' ? 'text-primary' : 'text-slate-700'}`}>
+                      <span
+                        className={`text-sm font-medium ${user.role === "Super Admin" ? "text-primary" : "text-slate-700"}`}
+                      >
                         {user.role}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      user.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                        user.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'
-                      }`}></span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        user.status === "Active"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          user.status === "Active"
+                            ? "bg-emerald-500"
+                            : "bg-slate-400"
+                        }`}
+                      ></span>
                       {user.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">{user.last_login}</td>
+                  <td className="px-6 py-4 text-slate-500 text-sm">
+                    {user.lastLogin}
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => user.id && handleDeleteUser(user.id)}
-                        disabled={user.role === 'Super Admin'}
+                        disabled={user.role === "Super Admin"}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -205,7 +232,10 @@ export default function Users() {
               ))}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-slate-500"
+                  >
                     No users found matching your search.
                   </td>
                 </tr>
@@ -221,34 +251,42 @@ export default function Users() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-900">Add New User</h2>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">First Name</label>
-                  <input 
+                  <label className="text-sm font-medium text-slate-700">
+                    First Name
+                  </label>
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                     placeholder="John"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Last Name</label>
-                  <input 
+                  <label className="text-sm font-medium text-slate-700">
+                    Last Name
+                  </label>
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                     placeholder="Doe"
                   />
@@ -256,14 +294,18 @@ export default function Users() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Email Address</label>
+                <label className="text-sm font-medium text-slate-700">
+                  Email Address
+                </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input 
+                  <input
                     required
-                    type="email" 
+                    type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                     placeholder="john@example.com"
                   />
@@ -271,29 +313,37 @@ export default function Users() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Role</label>
-                <select 
+                <label className="text-sm font-medium text-slate-700">
+                  Role
+                </label>
+                <select
                   value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value as Role})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, role: e.target.value as Role })
+                  }
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                 >
                   <option value="Manager">Manager</option>
                   <option value="Cashier">Cashier</option>
-                  {currentUserRole === 'Super Admin' && (
+                  {currentUserRole === "Super Admin" && (
                     <option value="Super Admin">Super Admin</option>
                   )}
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">Temporary Password</label>
+                <label className="text-sm font-medium text-slate-700">
+                  Temporary Password
+                </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input 
+                  <input
                     required
-                    type={showPassword ? "text" : "password"} 
+                    type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
                     className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
                     placeholder="••••••••"
                   />
@@ -302,21 +352,27 @@ export default function Users() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">User will be required to change this upon first login.</p>
+                <p className="text-xs text-slate-500">
+                  User will be required to change this upon first login.
+                </p>
               </div>
 
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 font-medium text-sm transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 font-medium text-sm transition-colors shadow-md shadow-primary/20"
                 >

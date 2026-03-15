@@ -1,6 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { db, type User, type Role } from '../db/db';
-import { supabase } from '../lib/supabase';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { db, type User, type Role } from "../db/db";
 
 interface AuthContextType {
   user: User | null;
@@ -18,21 +23,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const loadUser = async () => {
-      const storedUserId = localStorage.getItem('auth_user_id');
+      const storedUserId = localStorage.getItem("auth_user_id");
       if (storedUserId) {
         try {
-          const { data: users, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', Number(storedUserId))
-            .limit(1);
-
-          const foundUser = users && users.length > 0 ? users[0] : null;
-
-          if (foundUser && foundUser.status === 'Active') {
+          const foundUser = await db.users.get(Number(storedUserId));
+          if (foundUser && foundUser.status === "Active") {
             setUser(foundUser);
           } else {
-            localStorage.removeItem('auth_user_id');
+            localStorage.removeItem("auth_user_id");
           }
         } catch (error) {
           console.error("Failed to load user:", error);
@@ -40,24 +38,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setIsLoading(false);
     };
-    
+
     loadUser();
   }, []);
 
   const login = (loggedInUser: User) => {
     setUser(loggedInUser);
     if (loggedInUser.id) {
-      localStorage.setItem('auth_user_id', loggedInUser.id.toString());
+      localStorage.setItem("auth_user_id", loggedInUser.id.toString());
     }
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('auth_user_id');
+    localStorage.removeItem("auth_user_id");
   };
 
   // Default to Super Admin if no user is logged in for fallback, or use the actual user's role
-  const role = user?.role || 'Super Admin';
+  const role = user?.role || "Super Admin";
 
   return (
     <AuthContext.Provider value={{ user, role, login, logout, isLoading }}>
@@ -69,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

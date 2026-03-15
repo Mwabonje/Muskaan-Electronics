@@ -1,7 +1,7 @@
-import Dexie, { type EntityTable } from 'dexie';
+import { supabase } from "../supabase";
 
-export type Role = 'Super Admin' | 'Manager' | 'Cashier';
-export type Status = 'Active' | 'Inactive';
+export type Role = "Super Admin" | "Manager" | "Cashier";
+export type Status = "Active" | "Inactive";
 
 export interface User {
   id?: number;
@@ -10,7 +10,7 @@ export interface User {
   password?: string;
   role: Role;
   status: Status;
-  last_login: string;
+  lastLogin: string;
 }
 
 export interface Product {
@@ -18,171 +18,294 @@ export interface Product {
   name: string;
   brand: string;
   category: string;
-  cost_price: string | number;
-  selling_price: string | number;
+  cost: string | number;
+  selling: string | number;
   stock: number;
-  min_stock?: number;
+  minStock?: number;
   status: string;
   image?: string;
 }
 
 export interface SaleItem {
-  product_id: number;
+  productId: number;
   name: string;
   quantity: number;
   price: number;
   subtotal: number;
+  unitCost?: number | string; // Added for ViewLPOModal
+  refundAmount?: number | string; // Added for ViewReturnModal
+  condition?: "Good" | "Damaged"; // Added for ViewReturnModal
 }
 
 export interface Sale {
   id?: number;
   items: SaleItem[];
-  total_amount: number;
-  subtotal: number;
-  discount: number;
-  payment_method: string;
+  totalAmount: number;
+  paymentMethod: string;
   date: string;
-  customer_name?: string;
+  customerName?: string;
   notes?: string;
-  transaction_code?: string;
+  subtotal?: number; // Added for ViewSaleModal
+  discount?: number; // Added for ViewSaleModal
 }
 
 export interface Quote {
   id?: number;
   items: SaleItem[];
-  total_amount: number;
+  totalAmount: number;
   date: string;
-  customer_name?: string;
+  customerName?: string;
   notes?: string;
-  status: 'Pending' | 'Accepted' | 'Rejected';
+  status: "Pending" | "Accepted" | "Rejected";
 }
 
 export interface PurchaseOrder {
   id?: number;
   items: SaleItem[];
-  total_amount: number;
-  supplier_name: string;
+  totalAmount: number;
+  supplierName: string;
   date: string;
-  expected_delivery_date?: string;
-  status: 'Pending' | 'Approved' | 'Delivered' | 'Cancelled' | 'Rejected';
+  expectedDeliveryDate?: string;
+  status: "Pending" | "Approved" | "Rejected" | "Delivered" | "Cancelled";
   notes?: string;
-  rejection_reason?: string;
+  rejectionReason?: string;
 }
 
-export type LPO = PurchaseOrder;
+export type LPO = PurchaseOrder; // Alias for PurchaseOrders.tsx
 
 export interface Delivery {
   id?: number;
-  purchase_order_id?: number;
-  purchase_order_ids?: number[];
+  purchaseOrderId?: number;
+  lpoNumber?: string; // Added for Deliveries.tsx
   items: SaleItem[];
-  supplier_name: string;
+  supplierName: string;
   date: string;
-  received_by: string;
-  driver_name?: string;
-  plate_number?: string;
-  received_time?: string;
+  receivedBy: string;
   notes?: string;
 }
 
 export interface Return {
   id?: number;
-  original_sale_id?: number;
+  saleId?: number;
+  originalSaleId?: number; // Added for CustomerReturns.tsx
   items: SaleItem[];
-  total_refund: number;
-  customer_name: string;
+  totalRefund: number;
+  customerName: string;
   date: string;
   reason: string;
-  condition: 'Good' | 'Damaged';
+  condition: "Good" | "Damaged";
 }
 
-export type CustomerReturn = Return;
+export type CustomerReturn = Return; // Alias for CustomerReturns.tsx
 
 export interface StockHistory {
   id?: number;
-  product_id: number;
-  change_type: 'Addition' | 'Deduction' | 'Adjustment' | 'Sale' | 'Return';
-  quantity_change: number;
-  previous_stock: number;
-  new_stock: number;
+  productId: number;
+  changeType: "Addition" | "Deduction" | "Adjustment" | "Sale" | "Return";
+  quantityChange: number;
+  previousStock: number;
+  newStock: number;
   date: string;
   reason?: string;
-  user_id?: number;
+  userId?: number;
 }
 
 export interface Message {
   id?: number;
-  sender_id: number;
-  sender_name: string;
-  sender_role: Role;
-  receiver_id: number | 'all_managers' | 'super_admin';
+  senderId: number;
+  senderName: string;
+  senderRole: Role;
+  receiverId: number | string;
   subject: string;
   content: string;
   date: string;
   read: boolean;
-  type: 'system' | 'user';
+  type: "system" | "user";
 }
 
-export interface Activity {
-  id?: number;
-  user_id: number;
-  user_name: string;
-  user_role: Role;
-  type: 'Sale' | 'Quote' | 'LPO Created' | 'LPO Approved' | 'LPO Rejected' | 'Delivery' | 'Return' | 'Stock Adjustment';
-  description: string;
-  date: string;
-  reference_id?: number;
-}
-
-const db = new Dexie('MuskaanDB') as Dexie & {
-  users: EntityTable<User, 'id'>;
-  products: EntityTable<Product, 'id'>;
-  sales: EntityTable<Sale, 'id'>;
-  quotes: EntityTable<Quote, 'id'>;
-  purchase_orders: EntityTable<PurchaseOrder, 'id'>;
-  deliveries: EntityTable<Delivery, 'id'>;
-  returns: EntityTable<Return, 'id'>;
-  stock_history: EntityTable<StockHistory, 'id'>;
-  messages: EntityTable<Message, 'id'>;
-  activities: EntityTable<Activity, 'id'>;
+// Simple event emitter to trigger re-renders for useLiveQuery
+const listeners = new Set<() => void>();
+const triggerUpdate = () => {
+  listeners.forEach((listener) => listener());
 };
 
-// Schema declaration
-db.version(8).stores({
-  users: '++id, name, email, role, status',
-  products: '++id, name, brand, category, status',
-  sales: '++id, date, customer_name, payment_method',
-  quotes: '++id, date, customer_name, status',
-  purchase_orders: '++id, date, supplier_name, status',
-  deliveries: '++id, date, supplier_name, purchase_order_id',
-  returns: '++id, date, customer_name, original_sale_id',
-  stock_history: '++id, product_id, date, change_type',
-  messages: '++id, sender_id, receiver_id, date, read, type',
-  activities: '++id, user_id, user_role, date, type'
-}).upgrade(tx => {
-  return tx.table('users').toCollection().modify(user => {
-    if (!user.password) {
-      user.password = user.email === 'admin@muskaan.com' ? 'admin123' : 'password123';
+export function subscribeToDb(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+class TableAdapter<T extends { id?: number }> {
+  tableName: string;
+  constructor(tableName: string) {
+    this.tableName = tableName;
+  }
+
+  async toArray(): Promise<T[]> {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) {
+      console.error(`Error fetching ${this.tableName}:`, error);
+      return [];
     }
-  });
-});
+    return data as T[];
+  }
 
-// Seed initial data if empty
-db.on('populate', () => {
-  db.users.bulkAdd([
-    { name: 'Admin User', email: 'admin@muskaan.com', password: 'admin123', role: 'Super Admin', status: 'Active', lastLogin: 'Just now' },
-    { name: 'Rahul Sharma', email: 'rahul@muskaan.com', password: 'password123', role: 'Manager', status: 'Active', lastLogin: '2 hours ago' },
-    { name: 'Priya Mehta', email: 'priya@muskaan.com', password: 'password123', role: 'Cashier', status: 'Active', lastLogin: 'Yesterday' },
-    { name: 'Amit Kumar', email: 'amit@muskaan.com', password: 'password123', role: 'Cashier', status: 'Inactive', lastLogin: '5 days ago' },
-  ]);
-  
-  db.products.bulkAdd([
-    { name: 'iPhone 15 Pro Max', brand: 'Apple', category: 'Smartphones', cost: 'Ksh 999.00', selling: 'Ksh 1,199.00', stock: 45, status: 'In Stock', image: 'https://picsum.photos/seed/iphone/200' },
-    { name: 'Samsung QN90C Neo QLED', brand: 'Samsung', category: 'Televisions', cost: 'Ksh 1,200.00', selling: 'Ksh 1,599.00', stock: 8, status: 'Low Stock', image: 'https://picsum.photos/seed/tv/200' },
-    { name: 'Sony WH-1000XM5', brand: 'Sony', category: 'Audio', cost: 'Ksh 250.00', selling: 'Ksh 349.99', stock: 0, status: 'Out of Stock', image: 'https://picsum.photos/seed/headphones/200' },
-    { name: 'MacBook Air M3 15"', brand: 'Apple', category: 'Laptops', cost: 'Ksh 1,050.00', selling: 'Ksh 1,299.00', stock: 22, status: 'In Stock', image: 'https://picsum.photos/seed/macbook/200' },
-    { name: 'Dell XPS 13', brand: 'Dell', category: 'Laptops', cost: 'Ksh 850.00', selling: 'Ksh 999.00', stock: 5, status: 'Low Stock', image: 'https://picsum.photos/seed/dell/200' },
-  ]);
-});
+  async add(item: T): Promise<number> {
+    const { id, ...rest } = item;
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .insert(rest)
+      .select("id")
+      .single();
+    if (error) throw error;
+    triggerUpdate();
+    return data.id;
+  }
 
-export { db };
+  async bulkAdd(items: T[]): Promise<void> {
+    const itemsWithoutId = items.map(({ id, ...rest }) => rest);
+    const { error } = await supabase
+      .from(this.tableName)
+      .insert(itemsWithoutId);
+    if (error) throw error;
+    triggerUpdate();
+  }
+
+  async update(id: number, changes: Partial<T>): Promise<void> {
+    const { error } = await supabase
+      .from(this.tableName)
+      .update(changes)
+      .eq("id", id);
+    if (error) throw error;
+    triggerUpdate();
+  }
+
+  async delete(id: number): Promise<void> {
+    const { error } = await supabase.from(this.tableName).delete().eq("id", id);
+    if (error) throw error;
+    triggerUpdate();
+  }
+
+  async count(): Promise<number> {
+    const { count, error } = await supabase
+      .from(this.tableName)
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  }
+
+  async get(id: number): Promise<T | undefined> {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) return undefined;
+    return data as T;
+  }
+
+  reverse() {
+    return {
+      toArray: async () => {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select("*")
+          .order("id", { ascending: false });
+        if (error) throw error;
+        return data as T[];
+      },
+      sortBy: async (field: string) => {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select("*")
+          .order(field, { ascending: false });
+        if (error) throw error;
+        return data as T[];
+      },
+    };
+  }
+
+  where(field: string) {
+    return {
+      equals: (value: any) => ({
+        count: async () => {
+          const { count, error } = await supabase
+            .from(this.tableName)
+            .select("*", { count: "exact", head: true })
+            .eq(field, value);
+          if (error) throw error;
+          return count || 0;
+        },
+        first: async () => {
+          const { data, error } = await supabase
+            .from(this.tableName)
+            .select("*")
+            .eq(field, value)
+            .limit(1)
+            .single();
+          if (error) return undefined;
+          return data as T;
+        },
+        reverse: () => ({
+          sortBy: async (sortField: string) => {
+            const { data, error } = await supabase
+              .from(this.tableName)
+              .select("*")
+              .eq(field, value)
+              .order(sortField, { ascending: false });
+            if (error) throw error;
+            return data as T[];
+          },
+        }),
+      }),
+      equalsIgnoreCase: (value: string) => ({
+        first: async () => {
+          const { data, error } = await supabase
+            .from(this.tableName)
+            .select("*")
+            .ilike(field, value)
+            .limit(1)
+            .single();
+          if (error) return undefined;
+          return data as T;
+        },
+      }),
+    };
+  }
+
+  filter(predicate: (item: T) => boolean) {
+    return {
+      toArray: async () => {
+        const { data, error } = await supabase.from(this.tableName).select("*");
+        if (error) throw error;
+        return (data as T[]).filter(predicate);
+      },
+    };
+  }
+}
+
+export const db = {
+  users: new TableAdapter<User>("users"),
+  products: new TableAdapter<Product>("products"),
+  sales: new TableAdapter<Sale>("sales"),
+  quotes: new TableAdapter<Quote>("quotes"),
+  purchaseOrders: new TableAdapter<PurchaseOrder>("purchaseOrders"),
+  lpos: new TableAdapter<PurchaseOrder>("purchaseOrders"), // Alias
+  deliveries: new TableAdapter<Delivery>("deliveries"),
+  returns: new TableAdapter<Return>("returns"),
+  stockHistory: new TableAdapter<StockHistory>("stockHistory"),
+  messages: new TableAdapter<Message>("messages"),
+  on: (event: string, callback: () => void) => {
+    // Mock populate event
+    if (event === "populate") {
+      // We don't auto-populate Supabase from client usually, but we can leave it empty
+    }
+  },
+  version: (v: number) => ({
+    stores: (s: any) => ({
+      upgrade: (cb: any) => {},
+    }),
+  }),
+};

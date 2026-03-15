@@ -1,78 +1,79 @@
-import { useState } from 'react';
-import { db, Sale } from '../db/db';
-import { Search, Filter, Download, FileText, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import ViewSaleModal from '../components/ViewSaleModal';
-import { supabase } from '../lib/supabase';
-import { useEffect } from 'react';
+import { useState } from "react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db, Sale } from "../db/db";
+import {
+  Search,
+  Filter,
+  Download,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
+import ViewSaleModal from "../components/ViewSaleModal";
 
 export default function SalesHistory() {
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const sales = useLiveQuery(() => db.sales.reverse().toArray(), []) || [];
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
-  const fetchSales = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('sales')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (error) throw error;
-      setSales(data || []);
-    } catch (err) {
-      console.error("Failed to fetch sales:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSales();
-  }, []);
-
-  const filteredSales = sales.filter(sale => {
-    const matchesSearch = 
-      (sale.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredSales = sales.filter((sale) => {
+    const matchesSearch =
+      sale.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sale.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
-  const paginatedSales = filteredSales.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedSales = filteredSales.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const formatPrice = (priceStr: string | number) => {
-    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, '')) || 0;
+    if (typeof priceStr === "number")
+      return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const handleExportCSV = () => {
     if (!filteredSales || filteredSales.length === 0) return;
-    
-    const headers = ['Sale ID', 'Date', 'Customer Name', 'Payment Method', 'Total Amount', 'Items Count'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredSales.map(s => [
-        `"S-${s.id?.toString().padStart(4, '0')}"`,
-        `"${new Date(s.date).toLocaleDateString()}"`,
-        `"${s.customer_name || 'Walk-in Customer'}"`,
-        `"${s.payment_method}"`,
-        s.total_amount,
-        s.items.length
-      ].join(','))
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const headers = [
+      "Sale ID",
+      "Date",
+      "Customer Name",
+      "Payment Method",
+      "Total Amount",
+      "Items Count",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...filteredSales.map((s) =>
+        [
+          `"S-${s.id?.toString().padStart(4, "0")}"`,
+          `"${new Date(s.date).toLocaleDateString()}"`,
+          `"${s.customerName || "Walk-in Customer"}"`,
+          `"${s.paymentMethod}"`,
+          s.totalAmount,
+          s.items.length,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `sales_history_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `sales_history_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,11 +88,13 @@ export default function SalesHistory() {
             <FileText className="w-6 h-6 text-blue-500" />
             Sales History
           </h1>
-          <p className="text-sm text-slate-400 mt-1">View and manage past sales transactions</p>
+          <p className="text-sm text-slate-400 mt-1">
+            View and manage past sales transactions
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
@@ -124,20 +127,35 @@ export default function SalesHistory() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-[#0f172a]/50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Sale ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Payment</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Sale ID
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {paginatedSales.map((sale) => (
-                <tr key={sale.id} className="hover:bg-[#1e293b]/50 transition-colors">
+                <tr
+                  key={sale.id}
+                  className="hover:bg-[#1e293b]/50 transition-colors"
+                >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      S-{sale.id?.toString().padStart(4, '0')}
+                      S-{sale.id?.toString().padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -150,25 +168,27 @@ export default function SalesHistory() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {sale.customer_name || 'Walk-in Customer'}
+                      {sale.customerName || "Walk-in Customer"}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      sale.payment_method === 'Cash' 
-                        ? 'bg-emerald-500/10 text-emerald-500' 
-                        : 'bg-blue-500/10 text-blue-500'
-                    }`}>
-                      {sale.payment_method}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        sale.paymentMethod === "Cash"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-blue-500/10 text-blue-500"
+                      }`}
+                    >
+                      {sale.paymentMethod}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-white">
-                      {formatPrice(sale.total_amount)}
+                      {formatPrice(sale.totalAmount)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedSale(sale);
                         setIsViewModalOpen(true);
@@ -183,7 +203,10 @@ export default function SalesHistory() {
               ))}
               {paginatedSales.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
                     No sales found matching your criteria.
                   </td>
                 </tr>
@@ -195,18 +218,32 @@ export default function SalesHistory() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-slate-800 bg-[#0f172a]/50 px-6 py-4">
           <div className="text-sm text-slate-500">
-            Showing <span className="font-medium text-slate-300">{filteredSales.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, filteredSales.length)}</span> of <span className="font-medium text-slate-300">{filteredSales.length}</span> results
+            Showing{" "}
+            <span className="font-medium text-slate-300">
+              {filteredSales.length === 0
+                ? 0
+                : (currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-slate-300">
+              {Math.min(currentPage * itemsPerPage, filteredSales.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-slate-300">
+              {filteredSales.length}
+            </span>{" "}
+            results
           </div>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -216,7 +253,7 @@ export default function SalesHistory() {
         </div>
       </div>
 
-      <ViewSaleModal 
+      <ViewSaleModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         sale={selectedSale}

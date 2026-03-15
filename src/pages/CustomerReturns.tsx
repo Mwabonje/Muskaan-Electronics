@@ -1,73 +1,80 @@
-import { useState, useEffect } from 'react';
-import { db } from '../db/db';
-import { supabase } from '../lib/supabase';
-import { Search, Download, RotateCcw, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import ViewReturnModal from '../components/ViewReturnModal';
+import { useState } from "react";
+import { useLiveQuery } from "../hooks/useLiveQuery";
+import { db, CustomerReturn } from "../db/db";
+import {
+  Search,
+  Download,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
+import ViewReturnModal from "../components/ViewReturnModal";
 
 export default function CustomerReturns() {
-  const [returns, setReturns] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const returns = useLiveQuery(() => db.returns.reverse().toArray(), []) || [];
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReturn, setSelectedReturn] = useState<any | null>(null);
+  const [selectedReturn, setSelectedReturn] = useState<CustomerReturn | null>(
+    null,
+  );
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
 
-  const fetchReturns = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.from('returns').select('*').order('date', { ascending: false });
-      if (error) throw error;
-      setReturns(data || []);
-    } catch (err) {
-      console.error("Failed to fetch returns:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReturns();
-  }, []);
-
-  const filteredReturns = returns.filter(ret => {
-    const matchesSearch = 
-      ret.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredReturns = returns.filter((ret) => {
+    const matchesSearch =
+      ret.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ret.id?.toString().includes(searchQuery);
     return matchesSearch;
   });
 
   const totalPages = Math.ceil(filteredReturns.length / itemsPerPage);
-  const paginatedReturns = filteredReturns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedReturns = filteredReturns.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const formatPrice = (priceStr: string | number) => {
-    if (typeof priceStr === 'number') return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(String(priceStr).replace(/[^0-9.-]+/g, '')) || 0;
+    if (typeof priceStr === "number")
+      return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const handleExportCSV = () => {
     if (!filteredReturns || filteredReturns.length === 0) return;
-    
-    const headers = ['Return ID', 'Date', 'Customer Name', 'Original Sale ID', 'Total Refund', 'Items Count'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredReturns.map(r => [
-        `"RET-${r.id?.toString().padStart(4, '0')}"`,
-        `"${new Date(r.date).toLocaleDateString()}"`,
-        `"${r.customer_name}"`,
-        `"${r.original_sale_id || 'N/A'}"`,
-        r.total_refund,
-        r.items.length
-      ].join(','))
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const headers = [
+      "Return ID",
+      "Date",
+      "Customer Name",
+      "Original Sale ID",
+      "Total Refund",
+      "Items Count",
+    ];
+    const csvContent = [
+      headers.join(","),
+      ...filteredReturns.map((r) =>
+        [
+          `"RET-${r.id?.toString().padStart(4, "0")}"`,
+          `"${new Date(r.date).toLocaleDateString()}"`,
+          `"${r.customerName}"`,
+          `"${r.originalSaleId || "N/A"}"`,
+          r.totalRefund,
+          r.items.length,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `returns_history_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `returns_history_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -82,11 +89,13 @@ export default function CustomerReturns() {
             <RotateCcw className="w-6 h-6 text-blue-500" />
             Customer Returns
           </h1>
-          <p className="text-sm text-slate-400 mt-1">Manage and track customer returns and refunds</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Manage and track customer returns and refunds
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
@@ -119,20 +128,35 @@ export default function CustomerReturns() {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-800 bg-[#0f172a]/50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Return ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Original Sale</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Refund</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Return ID
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Original Sale
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Refund
+                </th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {paginatedReturns.map((ret) => (
-                <tr key={ret.id} className="hover:bg-[#1e293b]/50 transition-colors">
+                <tr
+                  key={ret.id}
+                  className="hover:bg-[#1e293b]/50 transition-colors"
+                >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      RET-{ret.id?.toString().padStart(4, '0')}
+                      RET-{ret.id?.toString().padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -142,21 +166,23 @@ export default function CustomerReturns() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-slate-300">
-                      {ret.customer_name}
+                      {ret.customerName}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-slate-400">
-                      {ret.original_sale_id ? `S-${ret.original_sale_id.toString().padStart(4, '0')}` : 'N/A'}
+                      {ret.originalSaleId
+                        ? `S-${ret.originalSaleId.toString().padStart(4, "0")}`
+                        : "N/A"}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-sm font-bold text-white">
-                      {formatPrice(ret.total_refund)}
+                      {formatPrice(ret.totalRefund)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedReturn(ret);
                         setIsViewModalOpen(true);
@@ -169,17 +195,13 @@ export default function CustomerReturns() {
                   </td>
                 </tr>
               ))}
-              {paginatedReturns.length === 0 && !isLoading && (
+              {paginatedReturns.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={6}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
                     No returns found matching your criteria.
-                  </td>
-                </tr>
-              )}
-              {isLoading && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                    Loading returns...
                   </td>
                 </tr>
               )}
@@ -190,18 +212,32 @@ export default function CustomerReturns() {
         {/* Pagination */}
         <div className="flex items-center justify-between border-t border-slate-800 bg-[#0f172a]/50 px-6 py-4">
           <div className="text-sm text-slate-500">
-            Showing <span className="font-medium text-slate-300">{filteredReturns.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, filteredReturns.length)}</span> of <span className="font-medium text-slate-300">{filteredReturns.length}</span> results
+            Showing{" "}
+            <span className="font-medium text-slate-300">
+              {filteredReturns.length === 0
+                ? 0
+                : (currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-slate-300">
+              {Math.min(currentPage * itemsPerPage, filteredReturns.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-slate-300">
+              {filteredReturns.length}
+            </span>{" "}
+            results
           </div>
           <div className="flex gap-2">
-            <button 
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button 
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
@@ -211,7 +247,7 @@ export default function CustomerReturns() {
         </div>
       </div>
 
-      <ViewReturnModal 
+      <ViewReturnModal
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         customerReturn={selectedReturn}
