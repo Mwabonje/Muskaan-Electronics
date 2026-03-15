@@ -10,14 +10,22 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Edit,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import ViewQuoteModal from "../components/ViewQuoteModal";
+import NewQuoteModal from "../components/NewQuoteModal";
+import { useAuth } from "../context/AuthContext";
 
 export default function Quotes() {
+  const { role } = useAuth();
   const quotes = useLiveQuery(() => db.quotes.reverse().toArray(), []) || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [quoteToEdit, setQuoteToEdit] = useState<Quote | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredQuotes = quotes.filter((quote) => {
     const matchesSearch =
@@ -80,6 +88,21 @@ export default function Quotes() {
     document.body.removeChild(link);
   };
 
+  const handleEditQuote = (quote: Quote) => {
+    setQuoteToEdit(quote);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteQuote = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this quote?")) {
+      try {
+        await db.quotes.delete(id);
+      } catch (error) {
+        console.error("Failed to delete quote:", error);
+      }
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -101,6 +124,16 @@ export default function Quotes() {
           >
             <Download className="w-4 h-4" />
             Export
+          </button>
+          <button
+            onClick={() => {
+              setQuoteToEdit(null);
+              setIsEditModalOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
+          >
+            <Plus className="w-4 h-4" />
+            New Quote
           </button>
         </div>
       </div>
@@ -255,15 +288,35 @@ export default function Quotes() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => setSelectedQuote(quote)}
-                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors inline-flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">
-                          View
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedQuote(quote)}
+                          className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors inline-flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span className="text-xs font-bold uppercase tracking-wider">
+                            View
+                          </span>
+                        </button>
+                        {(role === "admin" || role === "super admin") && (
+                          <>
+                            <button
+                              onClick={() => handleEditQuote(quote)}
+                              className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
+                              title="Edit Quote"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteQuote(quote.id!)}
+                              className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                              title="Delete Quote"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -278,6 +331,16 @@ export default function Quotes() {
         isOpen={!!selectedQuote}
         onClose={() => setSelectedQuote(null)}
         quote={selectedQuote}
+      />
+
+      {/* Edit Modal */}
+      <NewQuoteModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setQuoteToEdit(null);
+        }}
+        quoteToEdit={quoteToEdit}
       />
     </div>
   );

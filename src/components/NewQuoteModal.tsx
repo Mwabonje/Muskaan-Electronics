@@ -25,9 +25,10 @@ interface CartItem {
 interface NewQuoteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  quoteToEdit?: Quote | null;
 }
 
-export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
+export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuoteModalProps) {
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   const [filter, setFilter] = useState("ALL");
@@ -46,18 +47,34 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setFilter("ALL");
-      setCartItems([
-        { id: crypto.randomUUID(), productId: "", price: 0, quantity: 1 },
-      ]);
-      setDiscountType("percent");
-      setDiscountValue(0);
-      setCustomerName("");
-      setNotes("");
+      if (quoteToEdit) {
+        setCustomerName(quoteToEdit.customerName || "");
+        setNotes(quoteToEdit.notes || "");
+        setCartItems(
+          quoteToEdit.items.map((item) => ({
+            id: crypto.randomUUID(),
+            productId: item.productId,
+            price: item.price,
+            quantity: item.quantity,
+          }))
+        );
+        // Assuming no discount fields in Quote model, so leave them as default
+        setDiscountType("percent");
+        setDiscountValue(0);
+      } else {
+        setFilter("ALL");
+        setCartItems([
+          { id: crypto.randomUUID(), productId: "", price: 0, quantity: 1 },
+        ]);
+        setDiscountType("percent");
+        setDiscountValue(0);
+        setCustomerName("");
+        setNotes("");
+      }
       setGeneratedQuote(null);
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, quoteToEdit]);
 
   if (!isOpen) return null;
 
@@ -159,13 +176,19 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
           };
         }),
         totalAmount: grandTotal,
-        date: new Date().toISOString(),
+        date: quoteToEdit ? quoteToEdit.date : new Date().toISOString(),
         customerName: customerName || undefined,
         notes: notes || undefined,
-        status: "Pending",
+        status: quoteToEdit ? quoteToEdit.status : "Pending",
       };
 
-      const id = await db.quotes.add(newQuote);
+      let id;
+      if (quoteToEdit && quoteToEdit.id) {
+        await db.quotes.update(quoteToEdit.id, newQuote);
+        id = quoteToEdit.id;
+      } else {
+        id = await db.quotes.add(newQuote);
+      }
       newQuote.id = id as number;
 
       setGeneratedQuote(newQuote);
@@ -204,7 +227,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
       <div className="relative w-full max-w-2xl bg-[#0B1120] rounded-xl shadow-2xl border border-slate-800 flex flex-col max-h-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a]">
-          <h2 className="text-lg font-bold text-white">Generate New Quote</h2>
+          <h2 className="text-lg font-bold text-white">{quoteToEdit ? "Edit Quote" : "Generate New Quote"}</h2>
           <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
@@ -455,7 +478,7 @@ export default function NewQuoteModal({ isOpen, onClose }: NewQuoteModalProps) {
             onClick={handleConfirmQuote}
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"
           >
-            <FileText className="w-4 h-4" /> Generate Quote
+            <FileText className="w-4 h-4" /> {quoteToEdit ? "Update Quote" : "Generate Quote"}
           </button>
         </div>
       </div>

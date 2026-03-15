@@ -233,9 +233,11 @@ export default function ViewLPOModal({
               <tbody className="divide-y divide-slate-100">
                 {lpo.items.map((item, index) => {
                   const unitCost =
-                    parseFloat(
-                      item.unitCost?.toString().replace(/[^0-9.-]+/g, "") || "0",
-                    ) || 0;
+                    typeof item.unitCost === "number"
+                      ? item.unitCost
+                      : parseFloat(
+                          item.unitCost?.toString().replace(/[^0-9.-]+/g, "") || "0",
+                        ) || 0;
                   const total = item.quantity * unitCost;
                   return (
                     <tr

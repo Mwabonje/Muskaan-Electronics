@@ -9,11 +9,15 @@ import {
   ChevronRight,
   Eye,
   Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import ViewLPOModal from "../components/ViewLPOModal";
 import CreateLPOModal from "../components/CreateLPOModal";
+import { useAuth } from "../context/AuthContext";
 
 export default function PurchaseOrders() {
+  const { role } = useAuth();
   const lpos = useLiveQuery(() => db.lpos.reverse().toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,6 +89,16 @@ export default function PurchaseOrders() {
   const handleEditLPO = (lpo: LPO) => {
     setLpoToEdit(lpo);
     setIsCreateModalOpen(true);
+  };
+
+  const handleDeleteLPO = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this LPO?")) {
+      try {
+        await db.lpos.delete(id);
+      } catch (error) {
+        console.error("Failed to delete LPO:", error);
+      }
+    }
   };
 
   return (
@@ -217,16 +231,36 @@ export default function PurchaseOrders() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedLPO(lpo);
-                        setIsViewModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                      title="View LPO"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedLPO(lpo);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                        title="View LPO"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {(role === "admin" || role === "super admin") && (
+                        <>
+                          <button
+                            onClick={() => handleEditLPO(lpo)}
+                            className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
+                            title="Edit LPO"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLPO(lpo.id!)}
+                            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                            title="Delete LPO"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
