@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Banknote,
@@ -24,13 +24,31 @@ import CreateLPOModal from "../components/CreateLPOModal";
 import LogDeliveryModal from "../components/LogDeliveryModal";
 import CustomerReturnModal from "../components/CustomerReturnModal";
 
+import { useAuth } from "../context/AuthContext";
+
 export default function Dashboard() {
+  const { role } = useAuth();
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
   const [isCreateLPOModalOpen, setIsCreateLPOModalOpen] = useState(false);
   const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
   const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] =
     useState(false);
+  const [quotesEnabled, setQuotesEnabled] = useState(
+    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
+  );
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const productsCount = useLiveQuery(() => db.products.count(), []) || 0;
   const lowStockCount =
@@ -62,7 +80,7 @@ export default function Dashboard() {
         const cost = product
           ? typeof product.cost === "number"
             ? product.cost
-            : parseFloat(product.cost.toString().replace(/[^0-9.-]+/g, "")) || 0
+            : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
           : 0;
         return itemSum + (item.price - cost) * item.quantity;
       }, 0)
@@ -73,7 +91,7 @@ export default function Dashboard() {
     const cost =
       typeof product.cost === "number"
         ? product.cost
-        : parseFloat(product.cost.toString().replace(/[^0-9.-]+/g, "")) || 0;
+        : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0;
     return sum + cost * product.stock;
   }, 0);
 
@@ -372,23 +390,25 @@ export default function Dashboard() {
                 <ChevronRight className="w-4 h-4 text-blue-200 group-hover:translate-x-1 transition-transform" />
               </button>
 
-              <button
-                onClick={() => setIsNewQuoteModalOpen(true)}
-                className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-blue-400 group-hover:bg-blue-500/10 transition-colors">
-                    <FileText className="w-5 h-5" />
+              {!(role === "Cashier" && !quotesEnabled) && (
+                <button
+                  onClick={() => setIsNewQuoteModalOpen(true)}
+                  className="w-full flex items-center justify-between p-4 bg-[#0B1120] hover:bg-[#1e293b] border border-slate-800 rounded-xl transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-slate-800 rounded-lg text-slate-400 group-hover:text-blue-400 group-hover:bg-blue-500/10 transition-colors">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">New Quote</p>
+                      <p className="text-[10px] text-slate-500">
+                        Generate estimate for clients
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-white">New Quote</p>
-                    <p className="text-[10px] text-slate-500">
-                      Generate estimate for clients
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
-              </button>
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                </button>
+              )}
 
               <button
                 onClick={() => setIsCreateLPOModalOpen(true)}

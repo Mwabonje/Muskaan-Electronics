@@ -23,7 +23,7 @@ export default function SalesHistory() {
   const filteredSales = sales.filter((sale) => {
     const matchesSearch =
       sale.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sale.id?.toString().includes(searchQuery);
+      (sale.id?.toString() || "").includes(searchQuery);
     return matchesSearch;
   });
 
@@ -55,7 +55,7 @@ export default function SalesHistory() {
       headers.join(","),
       ...filteredSales.map((s) =>
         [
-          `"S-${s.id?.toString().padStart(4, "0")}"`,
+          `"S-${(s.id?.toString() || "").padStart(4, "0")}"`,
           `"${new Date(s.date).toLocaleDateString()}"`,
           `"${s.customerName || "Walk-in Customer"}"`,
           `"${s.paymentMethod}"`,
@@ -155,7 +155,7 @@ export default function SalesHistory() {
                 >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      S-{sale.id?.toString().padStart(4, "0")}
+                      S-{(sale.id?.toString() || "").padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">

@@ -24,7 +24,7 @@ export default function CustomerReturns() {
   const filteredReturns = returns.filter((ret) => {
     const matchesSearch =
       ret.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ret.id?.toString().includes(searchQuery);
+      (ret.id?.toString() || "").includes(searchQuery);
     return matchesSearch;
   });
 
@@ -56,7 +56,7 @@ export default function CustomerReturns() {
       headers.join(","),
       ...filteredReturns.map((r) =>
         [
-          `"RET-${r.id?.toString().padStart(4, "0")}"`,
+          `"RET-${(r.id?.toString() || "").padStart(4, "0")}"`,
           `"${new Date(r.date).toLocaleDateString()}"`,
           `"${r.customerName}"`,
           `"${r.originalSaleId || "N/A"}"`,
@@ -156,7 +156,7 @@ export default function CustomerReturns() {
                 >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      RET-{ret.id?.toString().padStart(4, "0")}
+                      RET-{(ret.id?.toString() || "").padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">

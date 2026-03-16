@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -29,15 +29,30 @@ export function cn(...inputs: ClassValue[]) {
 
 export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [quotesEnabled, setQuotesEnabled] = useState(
+    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
+  );
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, logout, isLoading } = useAuth();
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Inventory", path: "/inventory", icon: Package },
     { name: "Sales History", path: "/sales", icon: Receipt },
-    { name: "Quotes", path: "/quotes", icon: FileText },
+    { name: "Quotes", path: "/quotes", icon: FileText, hideFor: quotesEnabled ? [] : ["Cashier"] },
     { name: "Purchase Orders", path: "/purchase-orders", icon: ClipboardList },
     { name: "Deliveries", path: "/deliveries", icon: Truck },
     { name: "Customer Returns", path: "/returns", icon: RotateCcw },

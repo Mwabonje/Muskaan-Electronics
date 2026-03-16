@@ -266,7 +266,7 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
                   Receipt No.
                 </p>
                 <p className="text-sm font-mono font-bold">
-                  #{createdSaleId?.toString().padStart(6, "0")}
+                  #{(createdSaleId?.toString() || "").padStart(6, "0")}
                 </p>
               </div>
               <div className="text-right">

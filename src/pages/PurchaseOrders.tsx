@@ -30,7 +30,7 @@ export default function PurchaseOrders() {
   const filteredLPOs = lpos.filter((lpo) => {
     const matchesSearch =
       lpo.supplierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lpo.id?.toString().includes(searchQuery);
+      (lpo.id?.toString() || "").includes(searchQuery);
     return matchesSearch;
   });
 
@@ -62,7 +62,7 @@ export default function PurchaseOrders() {
       headers.join(","),
       ...filteredLPOs.map((l) =>
         [
-          `"LPO-${l.id?.toString().padStart(4, "0")}"`,
+          `"LPO-${(l.id?.toString() || "").padStart(4, "0")}"`,
           `"${new Date(l.date).toLocaleDateString()}"`,
           `"${l.supplierName}"`,
           l.totalAmount,
@@ -190,7 +190,7 @@ export default function PurchaseOrders() {
                 >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      LPO-{lpo.id?.toString().padStart(4, "0")}
+                      LPO-{(lpo.id?.toString() || "").padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -242,7 +242,7 @@ export default function PurchaseOrders() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {(role === "Admin" || role === "Super Admin") && (
+                      {(role === "Admin" || role === "Super Admin" || role === "Manager") && (
                         <>
                           <button
                             onClick={() => handleEditLPO(lpo)}

@@ -27,7 +27,7 @@ export default function Deliveries() {
       delivery.supplierName
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      delivery.id?.toString().includes(searchQuery);
+      (delivery.id?.toString() || "").includes(searchQuery);
     return matchesSearch;
   });
 
@@ -51,7 +51,7 @@ export default function Deliveries() {
       headers.join(","),
       ...filteredDeliveries.map((d) =>
         [
-          `"D-${d.id?.toString().padStart(4, "0")}"`,
+          `"D-${(d.id?.toString() || "").padStart(4, "0")}"`,
           `"${new Date(d.date).toLocaleDateString()}"`,
           `"${d.supplierName}"`,
           `"${d.lpoNumber || "N/A"}"`,
@@ -150,7 +150,7 @@ export default function Deliveries() {
                 >
                   <td className="px-6 py-4">
                     <span className="text-sm font-medium text-white">
-                      D-{delivery.id?.toString().padStart(4, "0")}
+                      D-{(delivery.id?.toString() || "").padStart(4, "0")}
                     </span>
                   </td>
                   <td className="px-6 py-4">

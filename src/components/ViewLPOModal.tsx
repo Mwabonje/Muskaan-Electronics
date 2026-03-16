@@ -94,7 +94,7 @@ export default function ViewLPOModal({
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-bold text-white">
-                  Purchase Order #LPO-{lpo.id?.toString().padStart(4, "0")}
+                  Purchase Order #LPO-{(lpo.id?.toString() || "").padStart(4, "0")}
                 </h2>
                 <span
                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
@@ -195,7 +195,7 @@ export default function ViewLPOModal({
                 </p>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <span className="text-slate-500">LPO #:</span> LPO-
-                  {lpo.id?.toString().padStart(4, "0")}
+                  {(lpo.id?.toString() || "").padStart(4, "0")}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <Calendar className="w-4 h-4 text-slate-400" />
@@ -236,7 +236,7 @@ export default function ViewLPOModal({
                     typeof item.unitCost === "number"
                       ? item.unitCost
                       : parseFloat(
-                          item.unitCost?.toString().replace(/[^0-9.-]+/g, "") || "0",
+                          (item.unitCost || "0").toString().replace(/[^0-9.-]+/g, ""),
                         ) || 0;
                   const total = item.quantity * unitCost;
                   return (

@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 
-export type Role = "Super Admin" | "Manager" | "Cashier";
+export type Role = "Super Admin" | "Admin" | "Manager" | "Cashier";
 export type Status = "Active" | "Inactive";
 
 export interface User {
@@ -57,6 +57,7 @@ export interface Quote {
   customerName?: string;
   notes?: string;
   status: "Pending" | "Accepted" | "Rejected";
+  isVisibleToCashier?: boolean;
 }
 
 export interface PurchaseOrder {

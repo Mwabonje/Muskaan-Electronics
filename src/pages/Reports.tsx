@@ -86,7 +86,7 @@ export default function Reports() {
         const cost = product
           ? typeof product.cost === "number"
             ? product.cost
-            : parseFloat(product.cost.toString().replace(/[^0-9.-]+/g, "")) || 0
+            : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
           : 0;
         return itemSum + (item.price - cost) * item.quantity;
       }, 0)

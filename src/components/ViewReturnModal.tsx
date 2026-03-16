@@ -43,7 +43,7 @@ export default function ViewReturnModal({
             <div>
               <h2 className="text-lg font-bold text-white">
                 Return Note #RET-
-                {customerReturn.id?.toString().padStart(4, "0")}
+                {(customerReturn.id?.toString() || "").padStart(4, "0")}
               </h2>
               <p className="text-xs text-slate-400">
                 {new Date(customerReturn.date).toLocaleString()}
@@ -111,7 +111,7 @@ export default function ViewReturnModal({
                 </p>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <span className="text-slate-500">Return #:</span> RET-
-                  {customerReturn.id?.toString().padStart(4, "0")}
+                  {(customerReturn.id?.toString() || "").padStart(4, "0")}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <Calendar className="w-4 h-4 text-slate-400" />
@@ -150,7 +150,7 @@ export default function ViewReturnModal({
                 {customerReturn.items.map((item, index) => {
                   const refundAmount =
                     parseFloat(
-                      item.refundAmount.toString().replace(/[^0-9.-]+/g, ""),
+                      (item.refundAmount || 0).toString().replace(/[^0-9.-]+/g, ""),
                     ) || 0;
                   return (
                     <tr

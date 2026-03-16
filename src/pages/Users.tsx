@@ -324,6 +324,7 @@ export default function Users() {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                 >
                   <option value="Manager">Manager</option>
+                  <option value="Admin">Admin</option>
                   <option value="Cashier">Cashier</option>
                   {currentUserRole === "Super Admin" && (
                     <option value="Super Admin">Super Admin</option>

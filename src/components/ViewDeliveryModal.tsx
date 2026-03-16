@@ -43,7 +43,7 @@ export default function ViewDeliveryModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                Delivery Note #D-{delivery.id?.toString().padStart(4, "0")}
+                Delivery Note #D-{(delivery.id?.toString() || "").padStart(4, "0")}
               </h2>
               <p className="text-xs text-slate-400">
                 {new Date(delivery.date).toLocaleString()}
@@ -120,7 +120,7 @@ export default function ViewDeliveryModal({
                 </p>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <span className="text-slate-500">Delivery #:</span> D-
-                  {delivery.id?.toString().padStart(4, "0")}
+                  {(delivery.id?.toString() || "").padStart(4, "0")}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
                   <Calendar className="w-4 h-4 text-slate-400" />

@@ -39,6 +39,31 @@ function ProtectedRoute({
   return <>{children}</>;
 }
 
+function QuotesRoute() {
+  const { role } = useAuth();
+  const [quotesEnabled, setQuotesEnabled] = useState(
+    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
+  );
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  if (role === "Cashier" && !quotesEnabled) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Quotes />;
+}
+
 // Ensure user is logged in
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, role, isLoading } = useAuth();
@@ -110,7 +135,7 @@ export default function App() {
             <Route path="products" element={<Products />} />
             <Route path="inventory" element={<Products />} />
             <Route path="sales" element={<SalesHistory />} />
-            <Route path="quotes" element={<Quotes />} />
+            <Route path="quotes" element={<QuotesRoute />} />
             <Route path="purchase-orders" element={<PurchaseOrders />} />
             <Route path="deliveries" element={<Deliveries />} />
             <Route path="returns" element={<CustomerReturns />} />

@@ -42,7 +42,7 @@ export default function ViewSaleModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                Receipt #S-{sale.id?.toString().padStart(4, "0")}
+                Receipt #S-{(sale.id?.toString() || "").padStart(4, "0")}
               </h2>
               <p className="text-xs text-slate-400">
                 {new Date(sale.date).toLocaleString()}
@@ -85,7 +85,7 @@ export default function ViewSaleModal({
             <div className="flex justify-between">
               <span className="text-slate-500">Receipt #:</span>
               <span className="font-medium">
-                S-{sale.id?.toString().padStart(4, "0")}
+                S-{(sale.id?.toString() || "").padStart(4, "0")}
               </span>
             </div>
             <div className="flex justify-between">

@@ -6,10 +6,19 @@ export default function Settings() {
   const { role } = useAuth();
   const [isLocked, setIsLocked] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
     setIsLocked(localStorage.getItem("system_locked") === "true");
+    setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
   }, []);
+
+  const handleToggleQuotes = () => {
+    const newValue = !quotesEnabled;
+    setQuotesEnabled(newValue);
+    localStorage.setItem("quotes_enabled_for_cashier", newValue.toString());
+    window.dispatchEvent(new Event("storage"));
+  };
 
   const handleToggleLock = () => {
     if (!isLocked) {
@@ -17,12 +26,14 @@ export default function Settings() {
     } else {
       setIsLocked(false);
       localStorage.setItem("system_locked", "false");
+      window.dispatchEvent(new Event("storage"));
     }
   };
 
   const confirmLock = () => {
     setIsLocked(true);
     localStorage.setItem("system_locked", "true");
+    window.dispatchEvent(new Event("storage"));
     setShowConfirmModal(false);
   };
 
@@ -33,12 +44,33 @@ export default function Settings() {
       </h1>
 
       <div className="space-y-6">
-        {/* General Settings Placeholder */}
+        {/* General Settings */}
         <div className="bg-white p-8 rounded-xl border border-primary/10 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">
+          <h2 className="text-lg font-bold text-slate-900 mb-6">
             General Settings
           </h2>
-          <p className="text-slate-500">More system settings coming soon.</p>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-slate-100 last:border-0">
+            <div>
+              <h3 className="font-bold text-slate-900">Quotes Access for Cashiers</h3>
+              <p className="text-sm text-slate-500 mt-1 max-w-xl">
+                Enable or disable the ability for Cashiers to view and create Quotes.
+              </p>
+            </div>
+            
+            <button
+              onClick={handleToggleQuotes}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                quotesEnabled ? "bg-blue-600" : "bg-slate-200"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  quotesEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Super Admin Only: System Maintenance */}
