@@ -53,7 +53,20 @@ export default function Login() {
         }
 
         // Update last login
-        await db.users.update(user.id!, { lastLogin: "Just now" });
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+        const formattedTime = now.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        await db.users.update(user.id!, {
+          lastLogin: `${formattedDate} at ${formattedTime}`,
+        });
 
         login(user);
         navigate("/dashboard");

@@ -105,7 +105,7 @@ export default function Users() {
           <div className="flex w-full items-center rounded-lg h-12 bg-white border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/50 px-4">
             <Search className="text-slate-400 w-5 h-5" />
             <input
-              className="w-full bg-transparent border-none outline-none px-3 text-sm"
+              className="w-full bg-transparent border-none outline-none px-3 text-sm text-slate-900"
               placeholder="Search users by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -211,7 +211,7 @@ export default function Users() {
                       {user.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-slate-500 text-sm">
+                  <td className="px-6 py-4 text-slate-900 text-sm font-medium">
                     {user.lastLogin}
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -272,7 +272,7 @@ export default function Users() {
                     onChange={(e) =>
                       setFormData({ ...formData, firstName: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                     placeholder="John"
                   />
                 </div>
@@ -287,7 +287,7 @@ export default function Users() {
                     onChange={(e) =>
                       setFormData({ ...formData, lastName: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                     placeholder="Doe"
                   />
                 </div>
@@ -306,7 +306,7 @@ export default function Users() {
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -321,7 +321,7 @@ export default function Users() {
                   onChange={(e) =>
                     setFormData({ ...formData, role: e.target.value as Role })
                   }
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                 >
                   <option value="Manager">Manager</option>
                   <option value="Cashier">Cashier</option>
@@ -344,7 +344,7 @@ export default function Users() {
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
-                    className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                    className="w-full pl-9 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
                     placeholder="••••••••"
                   />
                   <button
