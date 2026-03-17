@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Lock, Unlock, AlertTriangle, X } from "lucide-react";
+import { getSystemSetting, setSystemSetting } from "../utils/settings";
 
 export default function Settings() {
   const { role } = useAuth();
@@ -9,31 +10,38 @@ export default function Settings() {
   const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
-    setIsLocked(localStorage.getItem("system_locked") === "true");
-    setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    let isMounted = true;
+    const loadSettings = async () => {
+      const locked = await getSystemSetting("system_locked");
+      const quotes = await getSystemSetting("quotes_enabled_for_cashier");
+      
+      if (isMounted) {
+        setIsLocked(locked === "true");
+        setQuotesEnabled(quotes !== "false");
+      }
+    };
+    
+    loadSettings();
   }, []);
 
-  const handleToggleQuotes = () => {
+  const handleToggleQuotes = async () => {
     const newValue = !quotesEnabled;
     setQuotesEnabled(newValue);
-    localStorage.setItem("quotes_enabled_for_cashier", newValue.toString());
-    window.dispatchEvent(new Event("storage"));
+    await setSystemSetting("quotes_enabled_for_cashier", newValue.toString());
   };
 
-  const handleToggleLock = () => {
+  const handleToggleLock = async () => {
     if (!isLocked) {
       setShowConfirmModal(true);
     } else {
       setIsLocked(false);
-      localStorage.setItem("system_locked", "false");
-      window.dispatchEvent(new Event("storage"));
+      await setSystemSetting("system_locked", "false");
     }
   };
 
-  const confirmLock = () => {
+  const confirmLock = async () => {
     setIsLocked(true);
-    localStorage.setItem("system_locked", "true");
-    window.dispatchEvent(new Event("storage"));
+    await setSystemSetting("system_locked", "true");
     setShowConfirmModal(false);
   };
 

@@ -26,6 +26,7 @@ import CustomerReturnModal from "../components/CustomerReturnModal";
 
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
+import { getSystemSetting } from "../utils/settings";
 
 export default function Dashboard() {
   const { role, user } = useAuth();
@@ -36,18 +37,22 @@ export default function Dashboard() {
   const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
   const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] =
     useState(false);
-  const [quotesEnabled, setQuotesEnabled] = useState(
-    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
-  );
+  const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    let isMounted = true;
+    const checkQuotesEnabled = async () => {
+      const enabled = await getSystemSetting("quotes_enabled_for_cashier");
+      if (isMounted) {
+        setQuotesEnabled(enabled !== "false");
+      }
     };
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
+
+    checkQuotesEnabled();
+    const interval = setInterval(checkQuotesEnabled, 5000);
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      isMounted = false;
       clearInterval(interval);
     };
   }, []);

@@ -19,6 +19,7 @@ import ViewQuoteModal from "../components/ViewQuoteModal";
 import NewQuoteModal from "../components/NewQuoteModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
+import { getSystemSetting, setSystemSetting } from "../utils/settings";
 
 export default function Quotes() {
   const { role, user } = useAuth();
@@ -122,15 +123,30 @@ export default function Quotes() {
     }
   };
 
-  const [quotesEnabled, setQuotesEnabled] = useState(
-    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
-  );
+  const [quotesEnabled, setQuotesEnabled] = useState(true);
 
-  const handleToggleQuotesAccess = () => {
+  useEffect(() => {
+    let isMounted = true;
+    const checkQuotesEnabled = async () => {
+      const enabled = await getSystemSetting("quotes_enabled_for_cashier");
+      if (isMounted) {
+        setQuotesEnabled(enabled !== "false");
+      }
+    };
+
+    checkQuotesEnabled();
+    const interval = setInterval(checkQuotesEnabled, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleToggleQuotesAccess = async () => {
     const newValue = !quotesEnabled;
     setQuotesEnabled(newValue);
-    localStorage.setItem("quotes_enabled_for_cashier", String(newValue));
-    window.dispatchEvent(new Event("storage"));
+    await setSystemSetting("quotes_enabled_for_cashier", String(newValue));
   };
 
   return (

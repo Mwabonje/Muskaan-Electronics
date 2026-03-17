@@ -18,6 +18,7 @@ import {
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, type User, type Role } from "../db/db";
 import { useAuth } from "../context/AuthContext";
+import { getSystemSetting, setSystemSetting } from "../utils/settings";
 
 export default function Users() {
   const { role: currentUserRole } = useAuth();
@@ -29,27 +30,30 @@ export default function Users() {
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const [quotesEnabled, setQuotesEnabled] = useState(
-    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
-  );
+  const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    let isMounted = true;
+    const checkQuotesEnabled = async () => {
+      const enabled = await getSystemSetting("quotes_enabled_for_cashier");
+      if (isMounted) {
+        setQuotesEnabled(enabled !== "false");
+      }
     };
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
+
+    checkQuotesEnabled();
+    const interval = setInterval(checkQuotesEnabled, 5000);
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      isMounted = false;
       clearInterval(interval);
     };
   }, []);
 
-  const handleToggleQuotesAccess = () => {
+  const handleToggleQuotesAccess = async () => {
     const newValue = !quotesEnabled;
     setQuotesEnabled(newValue);
-    localStorage.setItem("quotes_enabled_for_cashier", String(newValue));
-    window.dispatchEvent(new Event("storage"));
+    await setSystemSetting("quotes_enabled_for_cashier", String(newValue));
   };
 
   // New User Form State

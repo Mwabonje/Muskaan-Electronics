@@ -21,6 +21,7 @@ import CustomerReturns from "./pages/CustomerReturns";
 import Messages from "./pages/Messages";
 import Quotes from "./pages/Quotes";
 import SystemLocked from "./components/SystemLocked";
+import { getSystemSetting } from "./utils/settings";
 
 // A simple wrapper to protect routes based on role
 function ProtectedRoute({
@@ -41,18 +42,22 @@ function ProtectedRoute({
 
 function QuotesRoute() {
   const { role } = useAuth();
-  const [quotesEnabled, setQuotesEnabled] = useState(
-    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
-  );
+  const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    let isMounted = true;
+    const checkQuotesEnabled = async () => {
+      const enabled = await getSystemSetting("quotes_enabled_for_cashier");
+      if (isMounted) {
+        setQuotesEnabled(enabled !== "false"); // Default to true if not set
+      }
     };
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 1000);
+
+    checkQuotesEnabled();
+    const interval = setInterval(checkQuotesEnabled, 5000);
+
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      isMounted = false;
       clearInterval(interval);
     };
   }, []);
@@ -67,22 +72,22 @@ function QuotesRoute() {
 // Ensure user is logged in
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, role, isLoading } = useAuth();
-  const [isLocked, setIsLocked] = useState(
-    localStorage.getItem("system_locked") === "true",
-  );
+  const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      setIsLocked(localStorage.getItem("system_locked") === "true");
+    let isMounted = true;
+    const checkLockStatus = async () => {
+      const locked = await getSystemSetting("system_locked");
+      if (isMounted) {
+        setIsLocked(locked === "true");
+      }
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    // Also check periodically in case it was changed in the same window (though React state usually handles that,
-    // but since we use localStorage directly in Settings, we need to dispatch an event or poll)
-    const interval = setInterval(handleStorageChange, 1000);
+    checkLockStatus();
+    const interval = setInterval(checkLockStatus, 5000);
 
     return () => {
-      window.removeEventListener("storage", handleStorageChange);
+      isMounted = false;
       clearInterval(interval);
     };
   }, []);

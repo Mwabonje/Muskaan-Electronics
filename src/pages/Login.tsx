@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { db } from "../db/db";
 import { useAuth } from "../context/AuthContext";
+import { getSystemSetting } from "../utils/settings";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +45,7 @@ export default function Login() {
           return;
         }
 
-        const isLocked = localStorage.getItem("system_locked") === "true";
+        const isLocked = await getSystemSetting("system_locked") === "true";
         if (isLocked && user.role !== "Super Admin") {
           setError(
             "System is currently locked for maintenance. Please contact an administrator.",
