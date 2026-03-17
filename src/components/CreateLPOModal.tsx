@@ -14,6 +14,7 @@ import {
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, LPO } from "../db/db";
 import ProductDetailsModal from "./ProductDetailsModal";
+import { useAuth } from "../context/AuthContext";
 
 interface CartItem {
   id: string;
@@ -33,6 +34,7 @@ export default function CreateLPOModal({
   onClose,
   lpoToEdit,
 }: CreateLPOModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   const [filter, setFilter] = useState("ALL");
@@ -199,6 +201,8 @@ export default function CreateLPOModal({
         expectedDeliveryDate: expectedDeliveryDate || undefined,
         notes: notes || undefined,
         status: "Pending" as const,
+        userId: lpoToEdit ? lpoToEdit.userId : user?.id,
+        userName: lpoToEdit ? lpoToEdit.userName : user?.name,
       };
 
       let lpoId;

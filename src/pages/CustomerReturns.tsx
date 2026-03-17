@@ -10,9 +10,13 @@ import {
   Eye,
 } from "lucide-react";
 import ViewReturnModal from "../components/ViewReturnModal";
+import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function CustomerReturns() {
+  const { user } = useAuth();
   const returns = useLiveQuery(() => db.returns.reverse().toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedReturn, setSelectedReturn] = useState<CustomerReturn | null>(
@@ -22,6 +26,8 @@ export default function CustomerReturns() {
   const itemsPerPage = 15;
 
   const filteredReturns = returns.filter((ret) => {
+    if (!canViewActivity(ret.userId, user, users)) return false;
+
     const matchesSearch =
       ret.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ret.id?.toString() || "").includes(searchQuery);

@@ -113,6 +113,8 @@ export default function POS() {
         paymentMethod: paymentMethod,
         customerName: "Walk-in Customer",
         date: new Date().toISOString(),
+        userId: user?.id,
+        userName: user?.name,
       });
 
       // Update stock

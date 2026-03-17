@@ -47,6 +47,8 @@ export interface Sale {
   notes?: string;
   subtotal?: number; // Added for ViewSaleModal
   discount?: number; // Added for ViewSaleModal
+  userId?: number;
+  userName?: string;
 }
 
 export interface Quote {
@@ -58,6 +60,8 @@ export interface Quote {
   notes?: string;
   status: "Pending" | "Accepted" | "Rejected";
   isVisibleToCashier?: boolean;
+  userId?: number;
+  userName?: string;
 }
 
 export interface PurchaseOrder {
@@ -69,6 +73,8 @@ export interface PurchaseOrder {
   expectedDeliveryDate?: string;
   status: "Pending" | "Approved" | "Rejected" | "Delivered" | "Cancelled";
   notes?: string;
+  userId?: number;
+  userName?: string;
 }
 
 export type LPO = PurchaseOrder; // Alias for PurchaseOrders.tsx
@@ -82,6 +88,8 @@ export interface Delivery {
   date: string;
   receivedBy: string;
   notes?: string;
+  userId?: number;
+  userName?: string;
 }
 
 export interface Return {
@@ -94,6 +102,8 @@ export interface Return {
   date: string;
   reason: string;
   condition: "Good" | "Damaged";
+  userId?: number;
+  userName?: string;
 }
 
 export type CustomerReturn = Return; // Alias for CustomerReturns.tsx

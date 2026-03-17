@@ -10,10 +10,14 @@ import {
   Eye,
 } from "lucide-react";
 import ViewDeliveryModal from "../components/ViewDeliveryModal";
+import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function Deliveries() {
+  const { user } = useAuth();
   const deliveries =
     useLiveQuery(() => db.deliveries.reverse().toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
@@ -23,6 +27,8 @@ export default function Deliveries() {
   const itemsPerPage = 15;
 
   const filteredDeliveries = deliveries.filter((delivery) => {
+    if (!canViewActivity(delivery.userId, user, users)) return false;
+
     const matchesSearch =
       delivery.supplierName
         ?.toLowerCase()

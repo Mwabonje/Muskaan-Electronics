@@ -25,9 +25,11 @@ import LogDeliveryModal from "../components/LogDeliveryModal";
 import CustomerReturnModal from "../components/CustomerReturnModal";
 
 import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function Dashboard() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [isNewQuoteModalOpen, setIsNewQuoteModalOpen] = useState(false);
   const [isCreateLPOModalOpen, setIsCreateLPOModalOpen] = useState(false);
@@ -63,8 +65,8 @@ export default function Dashboard() {
 
   const todaysSales =
     useLiveQuery(
-      () => db.sales.filter((sale) => new Date(sale.date) >= today).toArray(),
-      [],
+      () => db.sales.filter((sale) => new Date(sale.date) >= today && canViewActivity(sale.userId, user, users)).toArray(),
+      [user, users],
     ) || [];
 
   const todaysRevenue = todaysSales.reduce(
@@ -95,9 +97,9 @@ export default function Dashboard() {
     return sum + cost * product.stock;
   }, 0);
 
-  const recentSales = useLiveQuery(() => db.sales.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
-  const recentLPOs = useLiveQuery(() => db.lpos.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
-  const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().toArray().then(arr => arr.slice(0, 5)), []) || [];
+  const recentSales = useLiveQuery(() => db.sales.reverse().filter(s => canViewActivity(s.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
+  const recentLPOs = useLiveQuery(() => db.lpos.reverse().filter(l => canViewActivity(l.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
+  const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().filter(d => canViewActivity(d.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
 
   const recentActivities = [...recentSales.map(s => ({ ...s, type: 'Sale' })), 
                             ...recentLPOs.map(l => ({ ...l, type: 'LPO' })),

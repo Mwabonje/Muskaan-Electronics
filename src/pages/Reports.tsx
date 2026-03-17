@@ -21,37 +21,44 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function Reports() {
+  const { user } = useAuth();
   const [dateRange, setDateRange] = useState("month"); // 'today', 'week', 'month', 'year', 'all'
 
   const sales = useLiveQuery(() => db.sales.toArray(), []) || [];
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const returns = useLiveQuery(() => db.returns.toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
 
   // Filter data based on date range
   const filterByDate = (items: any[]) => {
-    if (dateRange === "all") return items;
+    let filteredItems = items;
+    if (dateRange !== "all") {
+      const now = new Date();
+      const start = new Date();
 
-    const now = new Date();
-    const start = new Date();
+      switch (dateRange) {
+        case "today":
+          start.setHours(0, 0, 0, 0);
+          break;
+        case "week":
+          start.setDate(now.getDate() - 7);
+          break;
+        case "month":
+          start.setMonth(now.getMonth() - 1);
+          break;
+        case "year":
+          start.setFullYear(now.getFullYear() - 1);
+          break;
+      }
 
-    switch (dateRange) {
-      case "today":
-        start.setHours(0, 0, 0, 0);
-        break;
-      case "week":
-        start.setDate(now.getDate() - 7);
-        break;
-      case "month":
-        start.setMonth(now.getMonth() - 1);
-        break;
-      case "year":
-        start.setFullYear(now.getFullYear() - 1);
-        break;
+      filteredItems = items.filter((item) => new Date(item.date) >= start);
     }
-
-    return items.filter((item) => new Date(item.date) >= start);
+    
+    return filteredItems.filter(item => canViewActivity(item.userId, user, users));
   };
 
   const filteredSales = filterByDate(sales);

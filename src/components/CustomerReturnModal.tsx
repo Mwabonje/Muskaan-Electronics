@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db } from "../db/db";
+import { useAuth } from "../context/AuthContext";
 
 interface CartItem {
   id: string;
@@ -31,6 +32,7 @@ export default function CustomerReturnModal({
   isOpen,
   onClose,
 }: CustomerReturnModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   const [filter, setFilter] = useState("ALL");
@@ -165,6 +167,8 @@ export default function CustomerReturnModal({
         reason,
         condition,
         date: new Date().toISOString(),
+        userId: user?.id,
+        userName: user?.name,
       });
 
       // Update inventory stock (Increase) ONLY if condition is Good

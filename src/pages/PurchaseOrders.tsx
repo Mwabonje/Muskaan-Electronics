@@ -15,10 +15,12 @@ import {
 import ViewLPOModal from "../components/ViewLPOModal";
 import CreateLPOModal from "../components/CreateLPOModal";
 import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function PurchaseOrders() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const lpos = useLiveQuery(() => db.lpos.reverse().toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLPO, setSelectedLPO] = useState<LPO | null>(null);
@@ -28,6 +30,8 @@ export default function PurchaseOrders() {
   const itemsPerPage = 15;
 
   const filteredLPOs = lpos.filter((lpo) => {
+    if (!canViewActivity(lpo.userId, user, users)) return false;
+
     const matchesSearch =
       lpo.supplierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (lpo.id?.toString() || "").includes(searchQuery);

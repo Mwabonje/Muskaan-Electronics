@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db } from "../db/db";
+import { useAuth } from "../context/AuthContext";
 
 interface CartItem {
   id: string;
@@ -30,6 +31,7 @@ export default function LogDeliveryModal({
   isOpen,
   onClose,
 }: LogDeliveryModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   const [filter, setFilter] = useState("ALL");
@@ -144,6 +146,8 @@ export default function LogDeliveryModal({
         receivedBy,
         date: new Date().toISOString(),
         notes: notes || undefined,
+        userId: user?.id,
+        userName: user?.name,
       });
 
       // Update inventory stock (Increase)

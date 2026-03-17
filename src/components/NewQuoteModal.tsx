@@ -14,6 +14,7 @@ import {
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, Quote } from "../db/db";
 import ViewQuoteModal from "./ViewQuoteModal";
+import { useAuth } from "../context/AuthContext";
 
 interface CartItem {
   id: string;
@@ -29,6 +30,7 @@ interface NewQuoteModalProps {
 }
 
 export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuoteModalProps) {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
 
   const [filter, setFilter] = useState("ALL");
@@ -180,6 +182,8 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
         customerName: customerName || undefined,
         notes: notes || undefined,
         status: quoteToEdit ? quoteToEdit.status : "Pending",
+        userId: quoteToEdit ? quoteToEdit.userId : user?.id,
+        userName: quoteToEdit ? quoteToEdit.userName : user?.name,
       };
 
       let id;

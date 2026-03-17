@@ -11,9 +11,13 @@ import {
   Eye,
 } from "lucide-react";
 import ViewSaleModal from "../components/ViewSaleModal";
+import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function SalesHistory() {
+  const { user } = useAuth();
   const sales = useLiveQuery(() => db.sales.reverse().toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -21,6 +25,8 @@ export default function SalesHistory() {
   const itemsPerPage = 15;
 
   const filteredSales = sales.filter((sale) => {
+    if (!canViewActivity(sale.userId, user, users)) return false;
+
     const matchesSearch =
       sale.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (sale.id?.toString() || "").includes(searchQuery);

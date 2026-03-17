@@ -18,10 +18,12 @@ import {
 import ViewQuoteModal from "../components/ViewQuoteModal";
 import NewQuoteModal from "../components/NewQuoteModal";
 import { useAuth } from "../context/AuthContext";
+import { canViewActivity } from "../utils/permissions";
 
 export default function Quotes() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const quotes = useLiveQuery(() => db.quotes.reverse().toArray(), []) || [];
+  const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
@@ -29,6 +31,8 @@ export default function Quotes() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredQuotes = quotes.filter((quote) => {
+    if (!canViewActivity(quote.userId, user, users)) return false;
+
     if (role === "Cashier" && quote.isVisibleToCashier === false) {
       return false;
     }
