@@ -144,7 +144,7 @@ export default function Quotes() {
         </div>
 
         <div className="flex items-center gap-3">
-          {(role === "Admin" || role === "Super Admin") && (
+          {(role === "Admin" || role === "Super Admin" || role === "Manager") && (
             <button
               onClick={handleToggleQuotesAccess}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium border ${

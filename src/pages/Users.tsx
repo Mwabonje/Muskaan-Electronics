@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -12,6 +12,8 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, type User, type Role } from "../db/db";
@@ -26,6 +28,29 @@ export default function Users() {
   const [showPassword, setShowPassword] = useState(false);
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+
+  const [quotesEnabled, setQuotesEnabled] = useState(
+    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
+  );
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setQuotesEnabled(localStorage.getItem("quotes_enabled_for_cashier") !== "false");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 1000);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleToggleQuotesAccess = () => {
+    const newValue = !quotesEnabled;
+    setQuotesEnabled(newValue);
+    localStorage.setItem("quotes_enabled_for_cashier", String(newValue));
+    window.dispatchEvent(new Event("storage"));
+  };
 
   // New User Form State
   const [formData, setFormData] = useState({
@@ -90,6 +115,20 @@ export default function Users() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {(currentUserRole === "Admin" || currentUserRole === "Super Admin" || currentUserRole === "Manager") && (
+            <button
+              onClick={handleToggleQuotesAccess}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium border ${
+                quotesEnabled
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+              }`}
+              title={quotesEnabled ? "Disable Quotes for Cashiers" : "Enable Quotes for Cashiers"}
+            >
+              {quotesEnabled ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              Cashier Quotes: {quotesEnabled ? "ON" : "OFF"}
+            </button>
+          )}
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors"
