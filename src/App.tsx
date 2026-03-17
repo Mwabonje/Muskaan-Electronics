@@ -161,7 +161,7 @@ export default function App() {
             <Route
               path="settings"
               element={
-                <ProtectedRoute restrictedRoles={["Cashier", "Manager"]}>
+                <ProtectedRoute restrictedRoles={["Cashier", "Manager", "Admin"]}>
                   <Settings />
                 </ProtectedRoute>
               }

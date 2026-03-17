@@ -118,6 +118,17 @@ export default function Quotes() {
     }
   };
 
+  const [quotesEnabled, setQuotesEnabled] = useState(
+    localStorage.getItem("quotes_enabled_for_cashier") !== "false"
+  );
+
+  const handleToggleQuotesAccess = () => {
+    const newValue = !quotesEnabled;
+    setQuotesEnabled(newValue);
+    localStorage.setItem("quotes_enabled_for_cashier", String(newValue));
+    window.dispatchEvent(new Event("storage"));
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -133,6 +144,20 @@ export default function Quotes() {
         </div>
 
         <div className="flex items-center gap-3">
+          {(role === "Admin" || role === "Super Admin") && (
+            <button
+              onClick={handleToggleQuotesAccess}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium border ${
+                quotesEnabled
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                  : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700"
+              }`}
+              title={quotesEnabled ? "Disable Quotes for Cashiers" : "Enable Quotes for Cashiers"}
+            >
+              {quotesEnabled ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              Cashier Access: {quotesEnabled ? "ON" : "OFF"}
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"

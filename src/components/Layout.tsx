@@ -73,7 +73,7 @@ export default function Layout() {
       name: "Settings",
       path: "/settings",
       icon: SettingsIcon,
-      hideFor: ["Cashier", "Manager"],
+      hideFor: ["Cashier", "Manager", "Admin"],
     },
   ];
 
