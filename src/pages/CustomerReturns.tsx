@@ -40,10 +40,11 @@ export default function CustomerReturns() {
     currentPage * itemsPerPage,
   );
 
-  const formatPrice = (priceStr: string | number) => {
+  const formatPrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr == null) return "Ksh 0.00";
     if (typeof priceStr === "number")
       return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
+    const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
     return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 

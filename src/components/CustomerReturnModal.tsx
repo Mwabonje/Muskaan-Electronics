@@ -90,7 +90,7 @@ export default function CustomerReturnModal({
           if (field === "productId" && value !== "") {
             const product = products.find((p) => p.id === Number(value));
             if (product) {
-              const priceString = String(product.selling).replace(
+              const priceString = String(product.selling || "0").replace(
                 /[^0-9.-]+/g,
                 "",
               );
@@ -402,13 +402,14 @@ export default function CustomerReturnModal({
     );
   }
 
-  const formatPrice = (priceStr: string | number) => {
+  const formatPrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr == null) return "0.00";
     if (typeof priceStr === "number")
       return priceStr.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
+    const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
     return num.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

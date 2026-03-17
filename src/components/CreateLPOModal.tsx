@@ -101,7 +101,7 @@ export default function CreateLPOModal({
   const handleProductAdded = async (productId: number) => {
     // We need to fetch the new product to get its cost
     const newProduct = await db.products.get(productId);
-    const price = newProduct ? Number(String(newProduct.cost).replace(/[^0-9.-]+/g, "")) || 0 : 0;
+    const price = newProduct ? Number(String(newProduct.cost || "0").replace(/[^0-9.-]+/g, "")) || 0 : 0;
 
     setCartItems(prev => {
       const lastItem = prev[prev.length - 1];
@@ -127,7 +127,7 @@ export default function CreateLPOModal({
           if (field === "productId" && value !== "") {
             const product = products.find((p) => p.id === Number(value));
             if (product) {
-              const priceString = String(product.cost).replace(
+              const priceString = String(product.cost || "0").replace(
                 /[^0-9.-]+/g,
                 "",
               );
@@ -398,13 +398,14 @@ export default function CreateLPOModal({
     );
   }
 
-  const formatPrice = (priceStr: string | number) => {
+  const formatPrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr == null) return "0.00";
     if (typeof priceStr === "number")
       return priceStr.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-    const num = parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
+    const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
     return num.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

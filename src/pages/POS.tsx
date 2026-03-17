@@ -18,8 +18,10 @@ import {
 } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, type Product } from "../db/db";
+import { useAuth } from "../context/AuthContext";
 
 export default function POS() {
+  const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>(
     [],
@@ -75,9 +77,10 @@ export default function POS() {
     setError(null);
   };
 
-  const parsePrice = (priceStr: string | number) => {
+  const parsePrice = (priceStr: string | number | undefined | null) => {
+    if (priceStr == null) return 0;
     if (typeof priceStr === "number") return priceStr;
-    return parseFloat(priceStr.replace(/[^0-9.-]+/g, "")) || 0;
+    return parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
   };
 
   const subtotal = cart.reduce(

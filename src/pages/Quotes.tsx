@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, Quote } from "../db/db";
 import {

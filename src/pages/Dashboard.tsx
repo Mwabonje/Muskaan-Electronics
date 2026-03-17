@@ -102,9 +102,9 @@ export default function Dashboard() {
     return sum + cost * product.stock;
   }, 0);
 
-  const recentSales = useLiveQuery(() => db.sales.reverse().filter(s => canViewActivity(s.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
-  const recentLPOs = useLiveQuery(() => db.lpos.reverse().filter(l => canViewActivity(l.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
-  const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().filter(d => canViewActivity(d.userId, user, users)).toArray().then(arr => arr.slice(0, 5)), [user, users]) || [];
+  const recentSales = useLiveQuery(() => db.sales.reverse().toArray().then(arr => arr.filter(s => canViewActivity(s.userId, user, users)).slice(0, 5)), [user, users]) || [];
+  const recentLPOs = useLiveQuery(() => db.lpos.reverse().toArray().then(arr => arr.filter(l => canViewActivity(l.userId, user, users)).slice(0, 5)), [user, users]) || [];
+  const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().toArray().then(arr => arr.filter(d => canViewActivity(d.userId, user, users)).slice(0, 5)), [user, users]) || [];
 
   const recentActivities = [...recentSales.map(s => ({ ...s, type: 'Sale' })), 
                             ...recentLPOs.map(l => ({ ...l, type: 'LPO' })),
