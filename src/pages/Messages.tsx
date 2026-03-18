@@ -31,12 +31,12 @@ export default function Messages() {
     if (!user?.id) return [];
     const allMessages = await db.messages.toArray();
     return allMessages
-      .filter(
-        (m) =>
-          m.receiverId === user.id ||
-          m.receiverId ===
-            (role === "Super Admin" ? "super_admin" : "all_managers"),
-      )
+      .filter((m) => {
+        if (String(m.receiverId) === String(user.id)) return true;
+        if (m.receiverId === "super_admin" && role === "Super Admin") return true;
+        if (m.receiverId === "all_managers" && (role === "Manager" || role === "Admin" || role === "Super Admin")) return true;
+        return false;
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [user?.id, role]);
 
@@ -44,7 +44,7 @@ export default function Messages() {
     if (!user?.id) return [];
     const allMessages = await db.messages.toArray();
     return allMessages
-      .filter((m) => m.senderId === user.id)
+      .filter((m) => String(m.senderId) === String(user.id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [user?.id]);
 
@@ -116,7 +116,7 @@ export default function Messages() {
   const getRecipientName = (recId: number | string) => {
     if (recId === "super_admin") return "Super Admin";
     if (recId === "all_managers") return "All Managers";
-    const recipient = users.find((u) => u.id === recId);
+    const recipient = users.find((u) => String(u.id) === String(recId));
     return recipient ? recipient.name : "Unknown User";
   };
 
