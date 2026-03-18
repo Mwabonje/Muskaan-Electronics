@@ -85,9 +85,9 @@ export default function Login() {
         await supabase.auth.signOut();
         setError("User profile not found in database. Please contact an administrator.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login error:", err);
-      setError("An error occurred during login.");
+      setError(err.message || "An error occurred during login.");
     }
   };
 
