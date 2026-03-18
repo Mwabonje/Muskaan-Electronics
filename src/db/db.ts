@@ -159,14 +159,31 @@ class TableAdapter<T extends { id?: number }> {
       console.error(`Error fetching ${this.tableName}:`, error);
       return [];
     }
-    return data as T[];
+    
+    // Convert snake_case back to camelCase
+    return (data as any[]).map(item => {
+      const camelCaseItem: any = {};
+      for (const [key, value] of Object.entries(item)) {
+        const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+        camelCaseItem[camelKey] = value;
+      }
+      return camelCaseItem as T;
+    });
   }
 
   async add(item: T): Promise<number> {
     const { id, ...rest } = item;
+    
+    // Convert camelCase keys to snake_case for Supabase
+    const snakeCaseItem: any = {};
+    for (const [key, value] of Object.entries(rest)) {
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      snakeCaseItem[snakeKey] = value;
+    }
+
     const { data, error } = await supabase
       .from(this.tableName)
-      .insert(rest)
+      .insert(snakeCaseItem)
       .select("id")
       .single();
     if (error) throw error;
@@ -175,18 +192,32 @@ class TableAdapter<T extends { id?: number }> {
   }
 
   async bulkAdd(items: T[]): Promise<void> {
-    const itemsWithoutId = items.map(({ id, ...rest }) => rest);
+    const snakeCaseItems = items.map(({ id, ...rest }) => {
+      const snakeCaseItem: any = {};
+      for (const [key, value] of Object.entries(rest)) {
+        const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        snakeCaseItem[snakeKey] = value;
+      }
+      return snakeCaseItem;
+    });
+
     const { error } = await supabase
       .from(this.tableName)
-      .insert(itemsWithoutId);
+      .insert(snakeCaseItems);
     if (error) throw error;
     triggerUpdate();
   }
 
   async update(id: number, changes: Partial<T>): Promise<void> {
+    const snakeCaseChanges: any = {};
+    for (const [key, value] of Object.entries(changes)) {
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      snakeCaseChanges[snakeKey] = value;
+    }
+
     const { error } = await supabase
       .from(this.tableName)
-      .update(changes)
+      .update(snakeCaseChanges)
       .eq("id", id);
     if (error) throw error;
     triggerUpdate();
@@ -212,8 +243,14 @@ class TableAdapter<T extends { id?: number }> {
       .select("*")
       .eq("id", id)
       .single();
-    if (error) return undefined;
-    return data as T;
+    if (error || !data) return undefined;
+    
+    const camelCaseItem: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+      camelCaseItem[camelKey] = value;
+    }
+    return camelCaseItem as T;
   }
 
   reverse() {
@@ -249,14 +286,21 @@ class TableAdapter<T extends { id?: number }> {
           return count || 0;
         },
         first: async () => {
+          const snakeField = field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
           const { data, error } = await supabase
             .from(this.tableName)
             .select("*")
-            .eq(field, value)
+            .eq(snakeField, value)
             .limit(1)
             .single();
-          if (error) return undefined;
-          return data as T;
+          if (error || !data) return undefined;
+          
+          const camelCaseItem: any = {};
+          for (const [key, val] of Object.entries(data)) {
+            const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+            camelCaseItem[camelKey] = val;
+          }
+          return camelCaseItem as T;
         },
         reverse: () => ({
           sortBy: async (sortField: string) => {
@@ -272,14 +316,21 @@ class TableAdapter<T extends { id?: number }> {
       }),
       equalsIgnoreCase: (value: string) => ({
         first: async () => {
+          const snakeField = field.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
           const { data, error } = await supabase
             .from(this.tableName)
             .select("*")
-            .ilike(field, value)
+            .ilike(snakeField, value)
             .limit(1)
             .single();
-          if (error) return undefined;
-          return data as T;
+          if (error || !data) return undefined;
+          
+          const camelCaseItem: any = {};
+          for (const [key, val] of Object.entries(data)) {
+            const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+            camelCaseItem[camelKey] = val;
+          }
+          return camelCaseItem as T;
         },
       }),
     };
@@ -290,7 +341,17 @@ class TableAdapter<T extends { id?: number }> {
       toArray: async () => {
         const { data, error } = await supabase.from(this.tableName).select("*");
         if (error) throw error;
-        return (data as T[]).filter(predicate);
+        
+        const camelCaseItems = (data as any[]).map(item => {
+          const camelCaseItem: any = {};
+          for (const [key, value] of Object.entries(item)) {
+            const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+            camelCaseItem[camelKey] = value;
+          }
+          return camelCaseItem as T;
+        });
+        
+        return camelCaseItems.filter(predicate);
       },
     };
   }
