@@ -23,6 +23,8 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useAuth } from "../context/AuthContext";
 import { getSystemSetting } from "../utils/settings";
+import { db } from "../db/db";
+import { useLiveQuery } from "../hooks/useLiveQuery";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -34,6 +36,19 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, logout, isLoading } = useAuth();
+
+  const unreadMessagesCount = useLiveQuery(async () => {
+    if (!user?.id) return 0;
+    const allMessages = await db.messages.toArray();
+    return allMessages.filter(
+      (m) =>
+        !m.read &&
+        (String(m.receiverId) === String(user.id) ||
+          (m.receiverId === "super_admin" && role === "Super Admin") ||
+          (m.receiverId === "all_managers" &&
+            (role === "Manager" || role === "Admin" || role === "Super Admin")))
+    ).length;
+  }, [user?.id, role]);
 
   useEffect(() => {
     let isMounted = true;
@@ -138,15 +153,22 @@ export default function Layout() {
               onClick={() => setIsMobileMenuOpen(false)}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors",
                   isActive
                     ? "bg-blue-600 text-white font-medium"
                     : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200",
                 )
               }
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-sm">{item.name}</span>
+              <div className="flex items-center gap-3">
+                <item.icon className="w-5 h-5" />
+                <span className="text-sm">{item.name}</span>
+              </div>
+              {item.name === "Messages" && unreadMessagesCount !== undefined && unreadMessagesCount > 0 && (
+                <span className="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {unreadMessagesCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>

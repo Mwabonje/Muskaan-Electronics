@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db, type Message, type User } from "../db/db";
-import { Mail, Send, Inbox, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Mail, Send, Inbox, AlertCircle, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 
 export default function Messages() {
@@ -15,6 +15,7 @@ export default function Messages() {
   const [users, setUsers] = useState<User[]>([]);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
 
   // Fetch users for the recipient dropdown
   useEffect(() => {
@@ -290,8 +291,11 @@ export default function Messages() {
                   {inboxMessages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50 ${!msg.read ? "bg-blue-900/10" : ""}`}
-                      onClick={() => !msg.read && msg.id && markAsRead(msg.id)}
+                      className={`p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50 cursor-pointer ${!msg.read ? "bg-blue-900/10" : ""}`}
+                      onClick={() => {
+                        if (!msg.read && msg.id) markAsRead(msg.id);
+                        setExpandedMessageId(expandedMessageId === msg.id ? null : (msg.id || null));
+                      }}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-3">
@@ -304,9 +308,16 @@ export default function Messages() {
                             {msg.subject}
                           </h3>
                         </div>
-                        <span className="text-xs text-slate-500 whitespace-nowrap ml-4">
-                          {formatDate(msg.date)}
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            {formatDate(msg.date)}
+                          </span>
+                          {expandedMessageId === msg.id ? (
+                            <ChevronUp className="w-4 h-4 text-slate-500" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-400 mb-3 pl-5">
                         <span className="font-medium text-slate-300">
@@ -316,9 +327,11 @@ export default function Messages() {
                           {msg.senderRole}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-400 pl-5 whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
+                      {expandedMessageId === msg.id && (
+                        <p className="text-sm text-slate-400 pl-5 whitespace-pre-wrap mt-4 border-t border-slate-800/50 pt-4">
+                          {msg.content}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -338,15 +351,23 @@ export default function Messages() {
                   {sentMessages.map((msg) => (
                     <div
                       key={msg.id}
-                      className="p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50"
+                      className="p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50 cursor-pointer"
+                      onClick={() => setExpandedMessageId(expandedMessageId === msg.id ? null : (msg.id || null))}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-medium text-slate-300">
                           {msg.subject}
                         </h3>
-                        <span className="text-xs text-slate-500 whitespace-nowrap ml-4">
-                          {formatDate(msg.date)}
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            {formatDate(msg.date)}
+                          </span>
+                          {expandedMessageId === msg.id ? (
+                            <ChevronUp className="w-4 h-4 text-slate-500" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-500" />
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
                         <span>
@@ -356,9 +377,11 @@ export default function Messages() {
                           </span>
                         </span>
                       </div>
-                      <p className="text-sm text-slate-400 whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
+                      {expandedMessageId === msg.id && (
+                        <p className="text-sm text-slate-400 whitespace-pre-wrap mt-4 border-t border-slate-800/50 pt-4">
+                          {msg.content}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
