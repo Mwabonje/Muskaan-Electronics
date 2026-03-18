@@ -6,6 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { db, type User, type Role } from "../db/db";
+import { supabase } from "../supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -22,24 +23,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const storedUserId = localStorage.getItem("auth_user_id");
-      if (storedUserId) {
+    let mounted = true;
+
+    const loadUser = async (session: any) => {
+      if (session?.user?.email) {
         try {
-          const foundUser = await db.users.get(Number(storedUserId));
-          if (foundUser && foundUser.status === "Active") {
+          const foundUser = await db.users
+            .where("email")
+            .equalsIgnoreCase(session.user.email)
+            .first();
+            
+          if (foundUser && foundUser.status === "Active" && mounted) {
             setUser(foundUser);
-          } else {
+            if (foundUser.id) {
+              localStorage.setItem("auth_user_id", foundUser.id.toString());
+            }
+          } else if (mounted) {
+            setUser(null);
             localStorage.removeItem("auth_user_id");
           }
         } catch (error) {
           console.error("Failed to load user:", error);
+          if (mounted) {
+            setUser(null);
+            localStorage.removeItem("auth_user_id");
+          }
+        }
+      } else {
+        if (mounted) {
+          setUser(null);
+          localStorage.removeItem("auth_user_id");
         }
       }
-      setIsLoading(false);
+      if (mounted) setIsLoading(false);
     };
 
-    loadUser();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      loadUser(session);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      loadUser(session);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = (loggedInUser: User) => {
@@ -49,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem("auth_user_id");
   };

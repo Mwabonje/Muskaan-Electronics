@@ -86,8 +86,8 @@ export default function Layout() {
     (item) => !item.hideFor?.includes(role),
   );
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 

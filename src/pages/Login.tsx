@@ -12,6 +12,7 @@ import {
 import { db } from "../db/db";
 import { useAuth } from "../context/AuthContext";
 import { getSystemSetting } from "../utils/settings";
+import { supabase } from "../supabase";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,18 +28,26 @@ export default function Login() {
     setError("");
 
     try {
+      // 1. Authenticate with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      // 2. Fetch user profile from custom users table
       const user = await db.users
         .where("email")
         .equalsIgnoreCase(email)
         .first();
 
       if (user) {
-        if (user.password !== password) {
-          setError("Invalid email or password.");
-          return;
-        }
-
         if (user.status === "Inactive") {
+          await supabase.auth.signOut();
           setError(
             "This account is inactive. Please contact an administrator.",
           );
@@ -47,6 +56,7 @@ export default function Login() {
 
         const isLocked = await getSystemSetting("system_locked") === "true";
         if (isLocked && user.role !== "Super Admin") {
+          await supabase.auth.signOut();
           setError(
             "System is currently locked for maintenance. Please contact an administrator.",
           );
@@ -72,7 +82,8 @@ export default function Login() {
         login(user);
         navigate("/dashboard");
       } else {
-        setError("Invalid email or password.");
+        await supabase.auth.signOut();
+        setError("User profile not found in database. Please contact an administrator.");
       }
     } catch (err) {
       console.error("Login error:", err);

@@ -19,6 +19,7 @@ import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, type User, type Role } from "../db/db";
 import { useAuth } from "../context/AuthContext";
 import { getSystemSetting, setSystemSetting } from "../utils/settings";
+import { supabase } from "../supabase";
 
 export default function Users() {
   const { role: currentUserRole } = useAuth();
@@ -67,24 +68,43 @@ export default function Users() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser = {
-      name: `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      password: formData.password,
-      role: formData.role,
-      status: "Active" as const,
-      lastLogin: "Never",
-    };
+    
+    try {
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    await db.users.add(newUser);
-    setIsModalOpen(false);
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      role: "Cashier",
-      password: "",
-    });
+      if (authError) {
+        alert(`Error creating user: ${authError.message}`);
+        return;
+      }
+
+      const newUser = {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        status: "Active" as const,
+        lastLogin: "Never",
+      };
+
+      await db.users.add(newUser);
+      setIsModalOpen(false);
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        role: "Cashier",
+        password: "",
+      });
+      
+      alert("User created successfully! Note: Supabase Auth automatically logs you in as the new user. You may need to log out and log back in as admin.");
+    } catch (error) {
+      console.error("Error adding user:", error);
+      alert("An error occurred while adding the user.");
+    }
   };
 
   const handleDeleteUser = async (id: number) => {
