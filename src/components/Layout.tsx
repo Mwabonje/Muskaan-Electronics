@@ -33,9 +33,17 @@ export function cn(...inputs: ClassValue[]) {
 export default function Layout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [quotesEnabled, setQuotesEnabled] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const location = useLocation();
   const navigate = useNavigate();
   const { user, role, logout, isLoading } = useAuth();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
 
   const unreadMessagesCount = useLiveQuery(async () => {
     if (!user?.id) return 0;
@@ -236,7 +244,15 @@ export default function Layout() {
               <Bell className="w-4 h-4" />
             </button>
             <div className="hidden sm:flex items-center text-sm text-slate-400 font-mono">
-              Mar 11, 2026
+              {currentTime.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}{" "}
+              {currentTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
           </div>
         </header>
