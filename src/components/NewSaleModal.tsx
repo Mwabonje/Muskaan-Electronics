@@ -206,9 +206,9 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
 
       setCreatedSaleId(saleId);
       setStep("preview");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to record sale:", err);
-      setError("Failed to record sale. Please try again.");
+      setError(`Failed to record sale: ${err.message || JSON.stringify(err)}`);
     }
   };
 

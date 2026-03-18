@@ -215,9 +215,9 @@ export default function CreateLPOModal({
 
       setCreatedLPOId(lpoId as number);
       setStep("preview");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to generate LPO:", err);
-      setError("Failed to generate LPO. Please try again.");
+      setError(`Failed to generate LPO: ${err.message || JSON.stringify(err)}`);
     }
   };
 

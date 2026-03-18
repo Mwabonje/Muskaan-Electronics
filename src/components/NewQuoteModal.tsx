@@ -196,9 +196,9 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
       newQuote.id = id as number;
 
       setGeneratedQuote(newQuote);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to generate quote:", err);
-      setError("Failed to generate quote. Please try again.");
+      setError(`Failed to generate quote: ${err.message || JSON.stringify(err)}`);
     }
   };
 
