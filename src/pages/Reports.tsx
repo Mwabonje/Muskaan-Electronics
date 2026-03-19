@@ -86,7 +86,7 @@ export default function Reports() {
 
   // Calculate metrics
   const totalRevenue = filteredSales.reduce(
-    (sum, sale) => sum + sale.totalAmount,
+    (sum, sale) => sum + (sale.totalAmount - (sale.tax || 0)),
     0,
   );
   const totalRefunds = filteredReturns.reduce(
@@ -106,18 +106,28 @@ export default function Reports() {
 
   // Calculate profit (assuming costPrice is available, otherwise this is just revenue)
   const totalProfit = filteredSales.reduce((sum, sale) => {
-    return (
-      sum +
-      sale.items.reduce((itemSum, item) => {
-        const product = products.find((p) => p.id === item.productId);
-        const cost = product
-          ? typeof product.cost === "number"
-            ? product.cost
-            : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
-          : 0;
-        return itemSum + (item.price - cost) * item.quantity;
-      }, 0)
-    );
+    const totalCost = sale.items.reduce((itemSum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const cost = product
+        ? typeof product.cost === "number"
+          ? product.cost
+          : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
+        : 0;
+      return itemSum + cost * item.quantity;
+    }, 0);
+    const revenue = sale.totalAmount - (sale.tax || 0);
+    return sum + (revenue - totalCost);
+  }, 0) - filteredReturns.reduce((sum, ret) => {
+    const totalCost = ret.items.reduce((itemSum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const cost = product
+        ? typeof product.cost === "number"
+          ? product.cost
+          : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
+        : 0;
+      return itemSum + cost * item.quantity;
+    }, 0);
+    return sum + (ret.totalRefund - totalCost);
   }, 0);
 
   const formatPrice = (price: number) => {
@@ -231,7 +241,7 @@ export default function Reports() {
       }
 
       if (trend[key] !== undefined) {
-        trend[key] += sale.totalAmount;
+        trend[key] += (sale.totalAmount - (sale.tax || 0));
       }
     });
 

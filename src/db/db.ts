@@ -47,6 +47,7 @@ export interface Sale {
   notes?: string;
   subtotal?: number; // Added for ViewSaleModal
   discount?: number; // Added for ViewSaleModal
+  tax?: number; // Added for POS
   userId?: number;
   userName?: string;
 }
@@ -194,6 +195,12 @@ class TableAdapter<T extends { id?: number }> {
 
   async delete(id: number): Promise<void> {
     const { error } = await supabase.from(this.tableName).delete().eq("id", id);
+    if (error) throw error;
+    triggerUpdate();
+  }
+
+  async clear(): Promise<void> {
+    const { error } = await supabase.from(this.tableName).delete().neq("id", 0);
     if (error) throw error;
     triggerUpdate();
   }

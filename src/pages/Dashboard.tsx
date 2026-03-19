@@ -74,24 +74,40 @@ export default function Dashboard() {
       [user, users],
     ) || [];
 
+  const todaysReturns =
+    useLiveQuery(
+      () => db.returns.filter((ret) => new Date(ret.date) >= today && canViewActivity(ret.userId, user, users)).toArray(),
+      [user, users],
+    ) || [];
+
   const todaysRevenue = todaysSales.reduce(
-    (sum, sale) => sum + sale.totalAmount,
+    (sum, sale) => sum + (sale.totalAmount - (sale.tax || 0)),
     0,
-  );
+  ) - todaysReturns.reduce((sum, ret) => sum + ret.totalRefund, 0);
 
   const todaysProfit = todaysSales.reduce((sum, sale) => {
-    return (
-      sum +
-      sale.items.reduce((itemSum, item) => {
-        const product = products.find((p) => p.id === item.productId);
-        const cost = product
-          ? typeof product.cost === "number"
-            ? product.cost
-            : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
-          : 0;
-        return itemSum + (item.price - cost) * item.quantity;
-      }, 0)
-    );
+    const totalCost = sale.items.reduce((itemSum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const cost = product
+        ? typeof product.cost === "number"
+          ? product.cost
+          : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
+        : 0;
+      return itemSum + cost * item.quantity;
+    }, 0);
+    const revenue = sale.totalAmount - (sale.tax || 0);
+    return sum + (revenue - totalCost);
+  }, 0) - todaysReturns.reduce((sum, ret) => {
+    const totalCost = ret.items.reduce((itemSum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const cost = product
+        ? typeof product.cost === "number"
+          ? product.cost
+          : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0
+        : 0;
+      return itemSum + cost * item.quantity;
+    }, 0);
+    return sum + (ret.totalRefund - totalCost);
   }, 0);
 
   const totalInventoryValue = products.reduce((sum, product) => {

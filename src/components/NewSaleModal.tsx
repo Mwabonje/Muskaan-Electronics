@@ -206,6 +206,8 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
           };
         }),
         totalAmount: grandTotal,
+        subtotal: subtotal,
+        discount: discountAmount,
         paymentMethod,
         date: new Date().toISOString(),
         customerName: customerName || undefined,

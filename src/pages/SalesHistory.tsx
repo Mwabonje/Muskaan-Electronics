@@ -9,20 +9,75 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Trash2,
 } from "lucide-react";
 import ViewSaleModal from "../components/ViewSaleModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
 
 export default function SalesHistory() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const sales = useLiveQuery(() => db.sales.reverse().toArray(), []) || [];
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
+
+  const handleDeleteSale = async () => {
+    if (!saleToDelete?.id) return;
+    try {
+      // Restore inventory stock
+      for (const item of saleToDelete.items) {
+        if (item.productId) {
+          const productInDb = await db.products.get(item.productId);
+          if (productInDb) {
+            const newStock = productInDb.stock + item.quantity;
+            const status =
+              newStock === 0
+                ? "Out of Stock"
+                : newStock <= (productInDb.minStock || 5)
+                  ? "Low Stock"
+                  : "In Stock";
+            
+            await db.products.update(productInDb.id!, { stock: newStock, status });
+
+            // Add stock history record
+            await db.stockHistory.add({
+              productId: productInDb.id!,
+              changeType: "Addition",
+              quantityChange: item.quantity,
+              previousStock: productInDb.stock,
+              newStock: newStock,
+              date: new Date().toISOString(),
+              reason: `Sale S-${saleToDelete.id.toString().padStart(4, "0")} deleted`,
+              userId: user?.id,
+            });
+          }
+        }
+      }
+
+      // Delete the sale record
+      await db.sales.delete(saleToDelete.id);
+      setSaleToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete sale:", error);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      // We don't restore stock for a bulk clear as it might be too intensive and usually bulk clear is for resetting the system
+      await db.sales.clear();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      console.error("Failed to clear sales history:", error);
+    }
+  };
 
   const filteredSales = sales.filter((sale) => {
     if (!canViewActivity(sale.userId, user, users)) return false;
@@ -101,6 +156,15 @@ export default function SalesHistory() {
         </div>
 
         <div className="flex items-center gap-3">
+          {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+            <button
+              onClick={() => setIsClearModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg border border-rose-500/20 transition-colors text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear History
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
@@ -195,16 +259,27 @@ export default function SalesHistory() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedSale(sale);
-                        setIsViewModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                      title="View Receipt"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedSale(sale);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                        title="View Receipt"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+                        <button
+                          onClick={() => setSaleToDelete(sale)}
+                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                          title="Delete Sale"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -264,6 +339,28 @@ export default function SalesHistory() {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         sale={selectedSale}
+      />
+
+      <ConfirmModal
+        isOpen={!!saleToDelete}
+        title="Delete Sale"
+        message="Are you sure you want to delete this sale? This action cannot be undone and will permanently remove the sale record from the history. The stock for the items in this sale will be restored."
+        confirmText="Delete Sale"
+        cancelText="Cancel"
+        onConfirm={handleDeleteSale}
+        onCancel={() => setSaleToDelete(null)}
+        isDestructive={true}
+      />
+
+      <ConfirmModal
+        isOpen={isClearModalOpen}
+        title="Clear Sales History"
+        message="Are you sure you want to delete ALL sales history? This action cannot be undone and will permanently remove all sale records. Note: This will NOT restore inventory stock."
+        confirmText="Clear All Sales"
+        cancelText="Cancel"
+        onConfirm={handleClearHistory}
+        onCancel={() => setIsClearModalOpen(false)}
+        isDestructive={true}
       />
     </div>
   );

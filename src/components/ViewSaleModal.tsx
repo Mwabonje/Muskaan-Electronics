@@ -156,6 +156,12 @@ export default function ViewSaleModal({
                 <span>-{formatPrice(sale.discount)}</span>
               </div>
             )}
+            {sale.tax && sale.tax > 0 ? (
+              <div className="flex justify-between text-slate-500">
+                <span>Tax:</span>
+                <span>{formatPrice(sale.tax)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-lg font-bold mt-2">
               <span>TOTAL:</span>
               <span>{formatPrice(sale.totalAmount)}</span>
