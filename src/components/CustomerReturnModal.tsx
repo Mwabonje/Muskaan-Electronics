@@ -82,6 +82,12 @@ export default function CustomerReturnModal({
 
   const handleItemChange = (id: string, field: keyof CartItem, value: any) => {
     setError(null);
+    
+    // Prevent negative quantities
+    if (field === "quantity" && typeof value === "number" && value < 0) {
+      return;
+    }
+    
     setCartItems(
       cartItems.map((item) => {
         if (item.id === id) {

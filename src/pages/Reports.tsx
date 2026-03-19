@@ -27,11 +27,31 @@ import { canViewActivity } from "../utils/permissions";
 export default function Reports() {
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState("month"); // 'today', 'week', 'month', 'year', 'all'
+  const [inventoryCategory, setInventoryCategory] = useState("All");
+  const [inventoryStatus, setInventoryStatus] = useState("All");
 
   const sales = useLiveQuery(() => db.sales.toArray(), []) || [];
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const returns = useLiveQuery(() => db.returns.toArray(), []) || [];
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
+
+  const categories = useMemo(() => ["All", ...Array.from(new Set(products.map(p => p.category)))], [products]);
+  const statuses = ["All", "In Stock", "Low Stock", "Out of Stock"];
+
+  const totalStockValue = useMemo(() => {
+    return products.reduce((sum, p) => {
+      const cost = typeof p.cost === "number" ? p.cost : parseFloat((p.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0;
+      return sum + (cost * p.stock);
+    }, 0);
+  }, [products]);
+
+  const filteredInventory = useMemo(() => {
+    return products.filter(p => {
+      const matchCat = inventoryCategory === "All" || p.category === inventoryCategory;
+      const matchStatus = inventoryStatus === "All" || p.status === inventoryStatus;
+      return matchCat && matchStatus;
+    });
+  }, [products, inventoryCategory, inventoryStatus]);
 
   // Filter data based on date range
   const filterByDate = (items: any[]) => {
@@ -433,6 +453,99 @@ export default function Reports() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Inventory Report */}
+      <div className="bg-[#0B1120] border border-slate-800 rounded-xl p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Package className="w-5 h-5 text-purple-500" />
+              Inventory Report
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Total Stock Value: <span className="text-white font-medium">{formatPrice(totalStockValue)}</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={inventoryCategory}
+              onChange={(e) => setInventoryCategory(e.target.value)}
+              className="px-3 py-2 bg-[#1e293b] border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            <select
+              value={inventoryStatus}
+              onChange={(e) => setInventoryStatus(e.target.value)}
+              className="px-3 py-2 bg-[#1e293b] border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+            >
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-800 text-slate-400 text-sm">
+                <th className="pb-3 font-medium">Product Name</th>
+                <th className="pb-3 font-medium">Category</th>
+                <th className="pb-3 font-medium text-right">Stock</th>
+                <th className="pb-3 font-medium text-right">Cost</th>
+                <th className="pb-3 font-medium text-right">Value</th>
+                <th className="pb-3 font-medium text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {filteredInventory.length > 0 ? (
+                filteredInventory.map((product) => {
+                  const cost = typeof product.cost === "number" ? product.cost : parseFloat((product.cost || 0).toString().replace(/[^0-9.-]+/g, "")) || 0;
+                  const value = cost * product.stock;
+                  return (
+                    <tr
+                      key={product.id}
+                      className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors"
+                    >
+                      <td className="py-3 text-slate-300">{product.name}</td>
+                      <td className="py-3 text-slate-500">{product.category}</td>
+                      <td className="py-3 text-right text-slate-300">{product.stock}</td>
+                      <td className="py-3 text-right text-slate-500">{formatPrice(cost)}</td>
+                      <td className="py-3 text-right text-slate-300">{formatPrice(value)}</td>
+                      <td className="py-3 text-center">
+                        <span
+                          className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            product.status === "In Stock"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : product.status === "Low Stock"
+                                ? "bg-amber-500/10 text-amber-500"
+                                : "bg-rose-500/10 text-rose-500"
+                          }`}
+                        >
+                          {product.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    No products match the selected filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

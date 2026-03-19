@@ -33,6 +33,7 @@ export default function POS() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [createdSaleId, setCreatedSaleId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
 
   const categories = [
     "All",
@@ -45,26 +46,58 @@ export default function POS() {
   ];
 
   const addToCart = (product: Product) => {
+    const stock = Number(product.stock) || 0;
+    const existing = cart.find((item) => item.product.id === product.id);
+    
+    if (existing) {
+      const currentQty = Number(existing.quantity) || 0;
+      if (currentQty + 1 > stock) {
+        setStockWarning(`Cannot add more. Only ${stock} units of ${product.name} available in stock.`);
+        return;
+      }
+    } else if (stock < 1) {
+      setStockWarning(`Cannot add ${product.name}. It is currently out of stock.`);
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
+      const existingInner = prev.find((item) => item.product.id === product.id);
+      if (existingInner) {
+        const currentQtyInner = Number(existingInner.quantity) || 0;
+        if (currentQtyInner + 1 > stock) return prev;
         return prev.map((item) =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: currentQtyInner + 1 }
             : item,
         );
       }
+      if (stock < 1) return prev;
       return [...prev, { product, quantity: 1 }];
     });
     setError(null);
   };
 
   const updateQuantity = (id: number, delta: number) => {
+    const existing = cart.find((item) => item.product.id === id);
+    if (!existing) return;
+
+    const stock = Number(existing.product.stock) || 0;
+    const currentQty = Number(existing.quantity) || 0;
+    const newQuantity = Math.max(1, currentQty + delta);
+
+    if (newQuantity > stock) {
+      setStockWarning(`Cannot increase quantity. Only ${stock} units of ${existing.product.name} available.`);
+      return;
+    }
+
     setCart((prev) =>
       prev.map((item) => {
         if (item.product.id === id) {
-          const newQuantity = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQuantity };
+          const itemStock = Number(item.product.stock) || 0;
+          const itemQty = Number(item.quantity) || 0;
+          const itemNewQty = Math.max(1, itemQty + delta);
+          if (itemNewQty > itemStock) return item;
+          return { ...item, quantity: itemNewQty };
         }
         return item;
       }),
@@ -104,6 +137,32 @@ export default function POS() {
     if (cart.length === 0) return;
 
     try {
+      // Re-validate stock before checkout
+      for (const item of cart) {
+        const productInDb = await db.products.get(item.product.id!);
+        const currentStock = productInDb ? (Number(productInDb.stock) || 0) : 0;
+        const itemQty = Number(item.quantity) || 0;
+        
+        if (itemQty <= 0) {
+          setError(`Invalid quantity for ${item.product.name}.`);
+          return;
+        }
+        
+        if (itemQty > currentStock) {
+          setStockWarning(`Checkout failed. Only ${currentStock} units of ${item.product.name} are currently available in stock.`);
+          
+          // Auto-adjust the cart to the maximum available
+          setCart((prev) =>
+            prev.map((cartItem) =>
+              cartItem.product.id === item.product.id
+                ? { ...cartItem, quantity: currentStock }
+                : cartItem
+            ).filter(cartItem => cartItem.quantity > 0)
+          );
+          return; // Abort checkout
+        }
+      }
+
       const saleId = await db.sales.add({
         items: cart.map((item) => ({
           productId: item.product.id!,
@@ -123,11 +182,15 @@ export default function POS() {
       // Update stock
       for (const item of cart) {
         if (item.product.id) {
-          const newStock = Math.max(0, item.product.stock - item.quantity);
+          const productInDb = await db.products.get(item.product.id);
+          if (!productInDb) continue;
+          
+          const currentStock = Number(productInDb.stock) || 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
           const status =
             newStock === 0
               ? "Out of Stock"
-              : newStock <= (item.product.minStock || 5)
+              : newStock <= (productInDb.minStock || 5)
                 ? "Low Stock"
                 : "In Stock";
 
@@ -140,7 +203,7 @@ export default function POS() {
             productId: item.product.id,
             changeType: "Sale",
             quantityChange: -item.quantity,
-            previousStock: item.product.stock,
+            previousStock: currentStock,
             newStock: newStock,
             date: new Date().toISOString(),
             reason: `POS Sale #${saleId}`,
@@ -313,9 +376,52 @@ export default function POS() {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="text-xs font-bold w-4 text-center">
-                          {item.quantity}
-                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity || ""}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            const stock = Number(item.product.stock) || 0;
+                            if (!isNaN(val) && val > stock) {
+                              setStockWarning(`Cannot set quantity to ${val}. Only ${stock} units of ${item.product.name} available.`);
+                              setCart((prev) =>
+                                prev.map((cartItem) =>
+                                  cartItem.product.id === item.product.id
+                                    ? { ...cartItem, quantity: stock }
+                                    : cartItem
+                                )
+                              );
+                              return;
+                            }
+                            
+                            // Prevent negative numbers while typing
+                            if (!isNaN(val) && val < 0) {
+                              return;
+                            }
+                            
+                            setCart((prev) =>
+                              prev.map((cartItem) =>
+                                cartItem.product.id === item.product.id
+                                  ? { ...cartItem, quantity: isNaN(val) ? 0 : val }
+                                  : cartItem
+                              )
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            if (isNaN(val) || val < 1) {
+                              setCart((prev) =>
+                                prev.map((cartItem) =>
+                                  cartItem.product.id === item.product.id
+                                    ? { ...cartItem, quantity: 1 }
+                                    : cartItem
+                                )
+                              );
+                            }
+                          }}
+                          className="w-10 text-xs font-bold text-center border-none bg-transparent focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button
                           onClick={() => updateQuantity(item.product.id, 1)}
                           className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
@@ -517,6 +623,31 @@ export default function POS() {
                 className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
               >
                 <Printer className="w-4 h-4" /> Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Warning Modal */}
+      {stockWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 mx-auto">
+                <Shield className="w-6 h-6 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-center text-slate-900 mb-2">
+                Insufficient Stock
+              </h3>
+              <p className="text-slate-600 text-center mb-6">
+                {stockWarning}
+              </p>
+              <button
+                onClick={() => setStockWarning(null)}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
+              >
+                Understood
               </button>
             </div>
           </div>

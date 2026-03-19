@@ -89,6 +89,12 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
 
   const handleItemChange = (id: string, field: keyof CartItem, value: any) => {
     setError(null);
+    
+    // Prevent negative quantities
+    if (field === "quantity" && typeof value === "number" && value < 0) {
+      return;
+    }
+    
     setCartItems(
       cartItems.map((item) => {
         if (item.id === id) {
@@ -148,13 +154,43 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
   const handleConfirmSale = async () => {
     setError(null);
     // Basic validation
-    const validItems = cartItems.filter(
-      (item) => item.productId !== "" && Number(item.quantity) > 0,
-    );
-    if (validItems.length === 0) {
-      setError("Please add at least one valid item.");
+    const itemsWithProduct = cartItems.filter((item) => item.productId !== "");
+    
+    if (itemsWithProduct.length === 0) {
+      setError("Please add at least one item.");
       return;
     }
+
+    // Aggregate quantities by product ID
+    const productQuantities: Record<number, number> = {};
+    for (const item of itemsWithProduct) {
+      const productId = Number(item.productId);
+      const qty = Number(item.quantity);
+      
+      if (isNaN(qty) || qty <= 0) {
+        const productInDb = await db.products.get(productId);
+        setError(`Invalid quantity for ${productInDb?.name || "an item"}. Quantity must be greater than 0.`);
+        return;
+      }
+      
+      productQuantities[productId] = (productQuantities[productId] || 0) + qty;
+    }
+
+    // Check aggregated quantities against stock
+    for (const [productIdStr, totalQty] of Object.entries(productQuantities)) {
+      const productId = Number(productIdStr);
+      const productInDb = await db.products.get(productId);
+      
+      if (productInDb) {
+        const currentStock = Number(productInDb.stock) || 0;
+        if (totalQty > currentStock) {
+          setError(`Cannot sell ${totalQty} units of ${productInDb.name}. Only ${currentStock} available in stock.`);
+          return;
+        }
+      }
+    }
+
+    const validItems = itemsWithProduct;
 
     try {
       // Create sale record
@@ -180,23 +216,23 @@ export default function NewSaleModal({ isOpen, onClose }: NewSaleModalProps) {
 
       // Update inventory stock
       for (const item of validItems) {
-        const product = products.find((p) => p.id === Number(item.productId));
-        if (product) {
+        const productInDb = await db.products.get(Number(item.productId));
+        if (productInDb) {
           const qty = Number(item.quantity);
-          const newStock = Math.max(0, product.stock - qty);
+          const newStock = Math.max(0, productInDb.stock - qty);
           const status =
             newStock === 0
               ? "Out of Stock"
-              : newStock <= (product.minStock || 5)
+              : newStock <= (productInDb.minStock || 5)
                 ? "Low Stock"
                 : "In Stock";
-          await db.products.update(product.id!, { stock: newStock, status });
+          await db.products.update(productInDb.id!, { stock: newStock, status });
 
           await db.stockHistory.add({
-            productId: product.id!,
+            productId: productInDb.id!,
             changeType: "Sale",
-            quantityChange: qty,
-            previousStock: product.stock,
+            quantityChange: -qty,
+            previousStock: productInDb.stock,
             newStock: newStock,
             date: new Date().toISOString(),
             reason: `Sale #${saleId}`,
