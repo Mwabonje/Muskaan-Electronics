@@ -8,13 +8,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Trash2,
 } from "lucide-react";
 import ViewDeliveryModal from "../components/ViewDeliveryModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
 
 export default function Deliveries() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const deliveries =
     useLiveQuery(() => db.deliveries.reverse().toArray(), []) || [];
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
@@ -23,8 +25,60 @@ export default function Deliveries() {
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(
     null,
   );
+  const [deliveryToDelete, setDeliveryToDelete] = useState<Delivery | null>(null);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
+
+  const handleDeleteDelivery = async () => {
+    if (!deliveryToDelete?.id) return;
+    try {
+      // Deliveries added stock, so we need to decrease it back.
+      for (const item of deliveryToDelete.items) {
+        if (item.productId) {
+          const productInDb = await db.products.get(item.productId);
+          if (productInDb) {
+            const newStock = Math.max(0, productInDb.stock - item.quantity);
+            const status =
+              newStock === 0
+                ? "Out of Stock"
+                : newStock <= (productInDb.minStock || 5)
+                  ? "Low Stock"
+                  : "In Stock";
+            
+            await db.products.update(productInDb.id!, { stock: newStock, status });
+
+            // Add stock history record
+            await db.stockHistory.add({
+              productId: productInDb.id!,
+              changeType: "Deduction",
+              quantityChange: item.quantity,
+              previousStock: productInDb.stock,
+              newStock: newStock,
+              date: new Date().toISOString(),
+              reason: `Delivery D-${deliveryToDelete.id.toString().padStart(4, "0")} deleted`,
+              userId: user?.id,
+            });
+          }
+        }
+      }
+
+      // Delete the delivery record
+      await db.deliveries.delete(deliveryToDelete.id);
+      setDeliveryToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete delivery:", error);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await db.deliveries.clear();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      console.error("Failed to clear deliveries history:", error);
+    }
+  };
 
   const filteredDeliveries = deliveries.filter((delivery) => {
     if (!canViewActivity(delivery.userId, user, users)) return false;
@@ -95,6 +149,15 @@ export default function Deliveries() {
         </div>
 
         <div className="flex items-center gap-3">
+          {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+            <button
+              onClick={() => setIsClearModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg border border-rose-500/20 transition-colors text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear History
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
@@ -180,16 +243,27 @@ export default function Deliveries() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedDelivery(delivery);
-                        setIsViewModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                      title="View Delivery Note"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedDelivery(delivery);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                        title="View Delivery Note"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+                        <button
+                          onClick={() => setDeliveryToDelete(delivery)}
+                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                          title="Delete Delivery"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -249,6 +323,28 @@ export default function Deliveries() {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         delivery={selectedDelivery}
+      />
+
+      <ConfirmModal
+        isOpen={!!deliveryToDelete}
+        title="Delete Delivery"
+        message="Are you sure you want to delete this delivery? This action cannot be undone. The stock for the items in this delivery will be deducted from inventory."
+        confirmText="Delete Delivery"
+        cancelText="Cancel"
+        onConfirm={handleDeleteDelivery}
+        onCancel={() => setDeliveryToDelete(null)}
+        isDestructive={true}
+      />
+
+      <ConfirmModal
+        isOpen={isClearModalOpen}
+        title="Clear Deliveries History"
+        message="Are you sure you want to delete ALL deliveries history? This action cannot be undone and will permanently remove all delivery records. Note: This will NOT adjust inventory stock."
+        confirmText="Clear All Deliveries"
+        cancelText="Cancel"
+        onConfirm={handleClearHistory}
+        onCancel={() => setIsClearModalOpen(false)}
+        isDestructive={true}
       />
     </div>
   );

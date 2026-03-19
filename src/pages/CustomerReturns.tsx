@@ -8,13 +8,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Trash2,
 } from "lucide-react";
 import ViewReturnModal from "../components/ViewReturnModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
 
 export default function CustomerReturns() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const returns = useLiveQuery(() => db.returns.reverse().toArray(), []) || [];
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,8 +24,62 @@ export default function CustomerReturns() {
   const [selectedReturn, setSelectedReturn] = useState<CustomerReturn | null>(
     null,
   );
+  const [returnToDelete, setReturnToDelete] = useState<CustomerReturn | null>(null);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const itemsPerPage = 15;
+
+  const handleDeleteReturn = async () => {
+    if (!returnToDelete?.id) return;
+    try {
+      // If the condition was "Good", the stock was increased. We need to decrease it back.
+      if (returnToDelete.condition === "Good") {
+        for (const item of returnToDelete.items) {
+          if (item.productId) {
+            const productInDb = await db.products.get(item.productId);
+            if (productInDb) {
+              const newStock = Math.max(0, productInDb.stock - item.quantity);
+              const status =
+                newStock === 0
+                  ? "Out of Stock"
+                  : newStock <= (productInDb.minStock || 5)
+                    ? "Low Stock"
+                    : "In Stock";
+              
+              await db.products.update(productInDb.id!, { stock: newStock, status });
+
+              // Add stock history record
+              await db.stockHistory.add({
+                productId: productInDb.id!,
+                changeType: "Deduction",
+                quantityChange: item.quantity,
+                previousStock: productInDb.stock,
+                newStock: newStock,
+                date: new Date().toISOString(),
+                reason: `Return RET-${returnToDelete.id.toString().padStart(4, "0")} deleted`,
+                userId: user?.id,
+              });
+            }
+          }
+        }
+      }
+
+      // Delete the return record
+      await db.returns.delete(returnToDelete.id);
+      setReturnToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete return:", error);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await db.returns.clear();
+      setIsClearModalOpen(false);
+    } catch (error) {
+      console.error("Failed to clear returns history:", error);
+    }
+  };
 
   const filteredReturns = returns.filter((ret) => {
     if (!canViewActivity(ret.userId, user, users)) return false;
@@ -102,6 +158,15 @@ export default function CustomerReturns() {
         </div>
 
         <div className="flex items-center gap-3">
+          {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+            <button
+              onClick={() => setIsClearModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg border border-rose-500/20 transition-colors text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear History
+            </button>
+          )}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
@@ -189,16 +254,27 @@ export default function CustomerReturns() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => {
-                        setSelectedReturn(ret);
-                        setIsViewModalOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
-                      title="View Return Note"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedReturn(ret);
+                          setIsViewModalOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                        title="View Return Note"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+                        <button
+                          onClick={() => setReturnToDelete(ret)}
+                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
+                          title="Delete Return"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -258,6 +334,28 @@ export default function CustomerReturns() {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         customerReturn={selectedReturn}
+      />
+
+      <ConfirmModal
+        isOpen={!!returnToDelete}
+        title="Delete Return"
+        message="Are you sure you want to delete this return? This action cannot be undone. If the returned items were in 'Good' condition, their stock will be deducted from inventory."
+        confirmText="Delete Return"
+        cancelText="Cancel"
+        onConfirm={handleDeleteReturn}
+        onCancel={() => setReturnToDelete(null)}
+        isDestructive={true}
+      />
+
+      <ConfirmModal
+        isOpen={isClearModalOpen}
+        title="Clear Returns History"
+        message="Are you sure you want to delete ALL returns history? This action cannot be undone and will permanently remove all return records. Note: This will NOT adjust inventory stock."
+        confirmText="Clear All Returns"
+        cancelText="Cancel"
+        onConfirm={handleClearHistory}
+        onCancel={() => setIsClearModalOpen(false)}
+        isDestructive={true}
       />
     </div>
   );
