@@ -122,11 +122,34 @@ export default function Dashboard() {
   const recentLPOs = useLiveQuery(() => db.lpos.reverse().toArray().then(arr => arr.filter(l => canViewActivity(l.userId, user, users)).slice(0, 5)), [user, users]) || [];
   const recentDeliveries = useLiveQuery(() => db.deliveries.reverse().toArray().then(arr => arr.filter(d => canViewActivity(d.userId, user, users)).slice(0, 5)), [user, users]) || [];
 
+  const clearMessages = useLiveQuery(() => db.messages.where("subject").equals("CLEAR_ACTIVITY").reverse().sortBy("id"), []) || [];
+  const clearedAt = clearMessages.length > 0 ? new Date(clearMessages[0].content).getTime() : 0;
+
   const recentActivities = [...recentSales.map(s => ({ ...s, type: 'Sale' })), 
                             ...recentLPOs.map(l => ({ ...l, type: 'LPO' })),
                             ...recentDeliveries.map(d => ({ ...d, type: 'Delivery' }))]
+    .filter(a => new Date(a.date).getTime() > clearedAt)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
+
+  const handleClearActivity = async () => {
+    if (!user) return;
+    try {
+      await db.messages.add({
+        senderId: user.id!,
+        senderName: user.name,
+        senderRole: user.role,
+        receiverId: "system",
+        subject: "CLEAR_ACTIVITY",
+        content: new Date().toISOString(),
+        date: new Date().toISOString(),
+        read: true,
+        type: "system"
+      });
+    } catch (error) {
+      console.error("Failed to clear activity:", error);
+    }
+  };
 
   const formatPrice = (priceStr: string | number | undefined | null) => {
     if (priceStr == null) return "Ksh 0.00";
@@ -493,9 +516,19 @@ export default function Dashboard() {
 
           {/* Recent Activity */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <History className="w-5 h-5 text-slate-400" />
-              <h2 className="text-lg font-bold text-white">Recent Activity</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-slate-400" />
+                <h2 className="text-lg font-bold text-white">Recent Activity</h2>
+              </div>
+              {(role === "Super Admin" || role === "Admin" || role === "Manager") && recentActivities.length > 0 && (
+                <button
+                  onClick={handleClearActivity}
+                  className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-400/10 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
             <div className="bg-[#0B1120] border border-slate-800 rounded-xl overflow-hidden">
