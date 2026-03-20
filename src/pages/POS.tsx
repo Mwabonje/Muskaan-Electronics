@@ -29,6 +29,7 @@ export default function POS() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"Cash" | "Card">("Cash");
   const [showReceipt, setShowReceipt] = useState(false);
   const [createdSaleId, setCreatedSaleId] = useState<number | null>(null);
@@ -234,9 +235,9 @@ export default function POS() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-background-light font-display lg:overflow-hidden overflow-y-auto">
+    <div className="flex flex-col lg:flex-row h-screen bg-background-light font-display overflow-hidden relative">
       {/* Left Side - Products */}
-      <div className="flex-1 flex flex-col lg:h-full min-h-[600px] lg:min-h-0 border-b lg:border-b-0 lg:border-r border-slate-200">
+      <div className="flex-1 flex flex-col h-full border-r border-slate-200">
         {/* Header */}
         <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0 gap-4">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -329,8 +330,44 @@ export default function POS() {
         </div>
       </div>
 
+      {/* Mobile Cart Toggle */}
+      <button
+        onClick={() => setIsCartOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-40 bg-primary text-white p-4 rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+      >
+        <ShoppingCart className="w-6 h-6" />
+        {cart.length > 0 && (
+          <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
+            {cart.reduce((sum, item) => sum + item.quantity, 0)}
+          </span>
+        )}
+      </button>
+
+      {/* Mobile Cart Overlay */}
+      {isCartOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-900/50 z-40 backdrop-blur-sm transition-opacity"
+          onClick={() => setIsCartOpen(false)}
+        />
+      )}
+
       {/* Right Side - Cart */}
-      <div className="w-full lg:w-[400px] flex flex-col lg:h-full min-h-[500px] lg:min-h-0 bg-white shrink-0 shadow-[-10px_0_30px_rgba(0,0,0,0.02)] z-10">
+      <div
+        className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[400px] lg:static lg:w-[400px] flex flex-col h-full bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.02)] transition-transform duration-300 ${
+          isCartOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+        }`}
+      >
+        {/* Mobile Cart Header */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white">
+          <h2 className="text-lg font-bold text-slate-900">Current Order</h2>
+          <button
+            onClick={() => setIsCartOpen(false)}
+            className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* Cart Items */}
         <div className="flex-1 overflow-y-auto p-4">
           {cart.length === 0 ? (

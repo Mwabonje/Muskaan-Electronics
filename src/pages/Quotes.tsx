@@ -163,7 +163,7 @@ export default function Quotes() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {(role === "Admin" || role === "Super Admin" || role === "Manager") && (
             <button
               onClick={handleToggleQuotesAccess}
@@ -211,7 +211,7 @@ export default function Quotes() {
           />
         </div>
 
-        <div className="flex items-center gap-2 bg-[#0B1120] border border-slate-800 rounded-xl p-1">
+        <div className="flex items-center gap-2 bg-[#0B1120] border border-slate-800 rounded-xl p-1 overflow-x-auto whitespace-nowrap">
           {["All", "Pending", "Accepted", "Rejected"].map((status) => (
             <button
               key={status}

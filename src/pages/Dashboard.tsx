@@ -23,6 +23,7 @@ import NewQuoteModal from "../components/NewQuoteModal";
 import CreateLPOModal from "../components/CreateLPOModal";
 import LogDeliveryModal from "../components/LogDeliveryModal";
 import CustomerReturnModal from "../components/CustomerReturnModal";
+import ViewAllActivityModal from "../components/ViewAllActivityModal";
 
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [isLogDeliveryModalOpen, setIsLogDeliveryModalOpen] = useState(false);
   const [isCustomerReturnModalOpen, setIsCustomerReturnModalOpen] =
     useState(false);
+  const [isViewAllActivityModalOpen, setIsViewAllActivityModalOpen] = useState(false);
   const [quotesEnabled, setQuotesEnabled] = useState(true);
 
   useEffect(() => {
@@ -521,14 +523,24 @@ export default function Dashboard() {
                 <History className="w-5 h-5 text-slate-400" />
                 <h2 className="text-lg font-bold text-white">Recent Activity</h2>
               </div>
-              {(role === "Super Admin" || role === "Admin" || role === "Manager") && recentActivities.length > 0 && (
-                <button
-                  onClick={handleClearActivity}
-                  className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-400/10 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {(role === "Super Admin" || role === "Admin" || role === "Manager") && recentActivities.length > 0 && (
+                  <button
+                    onClick={handleClearActivity}
+                    className="text-xs text-rose-400 hover:text-rose-300 px-2 py-1 rounded hover:bg-rose-400/10 transition-colors"
+                  >
+                    Clear
+                  </button>
+                )}
+                {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+                  <button
+                    onClick={() => setIsViewAllActivityModalOpen(true)}
+                    className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded hover:bg-blue-400/10 transition-colors"
+                  >
+                    View All
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="bg-[#0B1120] border border-slate-800 rounded-xl overflow-hidden">
@@ -609,6 +621,10 @@ export default function Dashboard() {
       <CustomerReturnModal
         isOpen={isCustomerReturnModalOpen}
         onClose={() => setIsCustomerReturnModalOpen(false)}
+      />
+      <ViewAllActivityModal
+        isOpen={isViewAllActivityModalOpen}
+        onClose={() => setIsViewAllActivityModalOpen(false)}
       />
     </div>
   );

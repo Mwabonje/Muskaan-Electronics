@@ -138,7 +138,7 @@ export default function Users() {
             Manage system access and user roles.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {(currentUserRole === "Admin" || currentUserRole === "Super Admin" || currentUserRole === "Manager") && (
             <button
               onClick={handleToggleQuotesAccess}
