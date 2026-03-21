@@ -72,14 +72,14 @@ export default function Dashboard() {
 
   const todaysSales =
     useLiveQuery(
-      () => db.sales.filter((sale) => new Date(sale.date) >= today && canViewActivity(sale.userId, user, users)).toArray(),
-      [user, users],
+      () => db.sales.filter((sale) => new Date(sale.date) >= today).toArray(),
+      [],
     ) || [];
 
   const todaysReturns =
     useLiveQuery(
-      () => db.returns.filter((ret) => new Date(ret.date) >= today && canViewActivity(ret.userId, user, users)).toArray(),
-      [user, users],
+      () => db.returns.filter((ret) => new Date(ret.date) >= today).toArray(),
+      [],
     ) || [];
 
   const todaysRevenue = todaysSales.reduce(
