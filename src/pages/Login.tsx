@@ -75,9 +75,14 @@ export default function Login() {
           minute: "2-digit",
           hour12: true,
         });
-        await db.users.update(user.id!, {
-          lastLogin: `${formattedDate} at ${formattedTime}`,
-        });
+        try {
+          // Wrap in try-catch so RLS restrictions don't crash the login process
+          await db.users.update(user.id!, {
+            lastLogin: `${formattedDate} at ${formattedTime}`,
+          });
+        } catch (updateErr) {
+          console.warn("Could not update last login (RLS restricted):", updateErr);
+        }
 
         login(user);
         navigate("/dashboard");

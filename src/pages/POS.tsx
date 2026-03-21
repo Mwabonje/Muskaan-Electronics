@@ -19,6 +19,7 @@ import {
 import { useLiveQuery } from "../hooks/useLiveQuery";
 import { db, type Product } from "../db/db";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../supabase";
 
 export default function POS() {
   const { user } = useAuth();
@@ -183,35 +184,72 @@ export default function POS() {
         userName: user?.name,
       });
 
-      // Update stock
+      // Update stock using Supabase RPC to prevent race conditions
       for (const item of cart) {
         if (item.product.id) {
-          const productInDb = await db.products.get(item.product.id);
-          if (!productInDb) continue;
-          
-          const currentStock = Number(productInDb.stock) || 0;
-          const newStock = Math.max(0, currentStock - item.quantity);
-          const status =
-            newStock === 0
-              ? "Out of Stock"
-              : newStock <= (productInDb.minStock || 5)
-                ? "Low Stock"
-                : "In Stock";
+          try {
+            // Call the secure RPC to decrement stock atomically
+            await supabase.rpc('decrement_stock', {
+              product_id: item.product.id,
+              quantity: item.quantity
+            });
 
-          await db.products.update(item.product.id, {
-            stock: newStock,
-            status,
-          });
+            // We still log the history (though ideally this would be done inside the RPC too)
+            const productInDb = await db.products.get(item.product.id);
+            if (productInDb) {
+              const newStock = Number(productInDb.stock) || 0;
+              const previousStock = newStock + item.quantity;
+              
+              const status =
+                newStock === 0
+                  ? "Out of Stock"
+                  : newStock <= (productInDb.minStock || 5)
+                    ? "Low Stock"
+                    : "In Stock";
+                    
+              // Update status if needed
+              await db.products.update(item.product.id, { status });
 
-          await db.stockHistory.add({
-            productId: item.product.id,
-            changeType: "Sale",
-            quantityChange: -item.quantity,
-            previousStock: currentStock,
-            newStock: newStock,
-            date: new Date().toISOString(),
-            reason: `POS Sale #${saleId}`,
-          });
+              await db.stockHistory.add({
+                productId: item.product.id,
+                changeType: "Sale",
+                quantityChange: -item.quantity,
+                previousStock: previousStock,
+                newStock: newStock,
+                date: new Date().toISOString(),
+                reason: `POS Sale #${saleId}`,
+              });
+            }
+          } catch (rpcError) {
+            console.error("Failed to decrement stock via RPC:", rpcError);
+            // Fallback to client-side math if RPC isn't created yet
+            const productInDb = await db.products.get(item.product.id);
+            if (!productInDb) continue;
+            
+            const currentStock = Number(productInDb.stock) || 0;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            const status =
+              newStock === 0
+                ? "Out of Stock"
+                : newStock <= (productInDb.minStock || 5)
+                  ? "Low Stock"
+                  : "In Stock";
+
+            await db.products.update(item.product.id, {
+              stock: newStock,
+              status,
+            });
+
+            await db.stockHistory.add({
+              productId: item.product.id,
+              changeType: "Sale",
+              quantityChange: -item.quantity,
+              previousStock: currentStock,
+              newStock: newStock,
+              date: new Date().toISOString(),
+              reason: `POS Sale #${saleId}`,
+            });
+          }
         }
       }
 

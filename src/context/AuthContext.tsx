@@ -89,8 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("auth_user_id");
   };
 
-  // Default to Super Admin if no user is logged in for fallback, or use the actual user's role
-  const role = user?.role || "Super Admin";
+  // Default to Cashier (least privilege) if no user is logged in for fallback
+  const role = user?.role || "Cashier";
 
   return (
     <AuthContext.Provider value={{ user, role, login, logout, isLoading }}>
