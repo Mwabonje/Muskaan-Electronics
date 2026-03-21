@@ -33,8 +33,11 @@ export default function LogDeliveryModal({
 }: LogDeliveryModalProps) {
   const { user } = useAuth();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
+  const lpos = useLiveQuery(() => db.lpos.toArray(), []) || [];
+  const approvedLPOs = lpos.filter(lpo => lpo.status === "Approved");
 
   const [filter, setFilter] = useState("ALL");
+  const [selectedLPOId, setSelectedLPOId] = useState<number | "">("");
   const [cartItems, setCartItems] = useState<CartItem[]>([
     { id: crypto.randomUUID(), productId: "", quantity: 1 },
   ]);
@@ -55,6 +58,7 @@ export default function LogDeliveryModal({
       setCreatedDeliveryId(null);
       setError(null);
       setFilter("ALL");
+      setSelectedLPOId("");
       setCartItems([{ id: crypto.randomUUID(), productId: "", quantity: 1 }]);
       setSupplierName("");
       setReceivedBy("");
@@ -63,6 +67,27 @@ export default function LogDeliveryModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const handleLPOChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const lpoId = e.target.value;
+    setSelectedLPOId(lpoId === "" ? "" : Number(lpoId));
+    
+    if (lpoId !== "") {
+      const lpo = lpos.find(l => l.id === Number(lpoId));
+      if (lpo) {
+        setSupplierName(lpo.supplierName);
+        const newCartItems = lpo.items.map(item => ({
+          id: crypto.randomUUID(),
+          productId: item.productId,
+          quantity: item.quantity
+        }));
+        setCartItems(newCartItems.length > 0 ? newCartItems : [{ id: crypto.randomUUID(), productId: "", quantity: 1 }]);
+      }
+    } else {
+      setSupplierName("");
+      setCartItems([{ id: crypto.randomUUID(), productId: "", quantity: 1 }]);
+    }
+  };
 
   const handleAddItem = () => {
     setCartItems([
@@ -113,6 +138,10 @@ export default function LogDeliveryModal({
   const handleConfirmDelivery = async () => {
     setError(null);
     // Basic validation
+    if (selectedLPOId === "") {
+      setError("Please select an approved LPO to receive stock.");
+      return;
+    }
     const validItems = cartItems.filter(
       (item) => item.productId !== "" && Number(item.quantity) > 0,
     );
@@ -132,6 +161,8 @@ export default function LogDeliveryModal({
     try {
       // Create Delivery record
       const deliveryId = await db.deliveries.add({
+        purchaseOrderId: Number(selectedLPOId),
+        lpoNumber: `LPO-${selectedLPOId.toString().padStart(4, "0")}`,
         items: validItems.map((item) => {
           const product = products.find((p) => p.id === Number(item.productId));
           return {
@@ -171,9 +202,14 @@ export default function LogDeliveryModal({
             previousStock: product.stock,
             newStock: newStock,
             date: new Date().toISOString(),
-            reason: `Delivery #${deliveryId} from ${supplierName}`,
+            reason: `Delivery #${deliveryId} from ${supplierName} (LPO-${selectedLPOId.toString().padStart(4, "0")})`,
           });
         }
+      }
+
+      // Update LPO status to Delivered
+      if (selectedLPOId !== "") {
+        await db.lpos.update(Number(selectedLPOId), { status: "Delivered" });
       }
 
       setCreatedDeliveryId(deliveryId as number);
@@ -386,6 +422,24 @@ export default function LogDeliveryModal({
 
           {/* Delivery Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <FileText className="w-3 h-3" /> Select Approved LPO{" "}
+                <span className="text-emerald-500">*</span>
+              </label>
+              <select
+                value={selectedLPOId}
+                onChange={handleLPOChange}
+                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+              >
+                <option value="">-- Select an Approved LPO --</option>
+                {approvedLPOs.map(lpo => (
+                  <option key={lpo.id} value={lpo.id}>
+                    LPO-{lpo.id?.toString().padStart(4, "0")} - {lpo.supplierName} ({new Date(lpo.date).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Building2 className="w-3 h-3" /> Supplier Name{" "}
@@ -395,7 +449,8 @@ export default function LogDeliveryModal({
                 type="text"
                 value={supplierName}
                 onChange={(e) => setSupplierName(e.target.value)}
-                className="w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                readOnly={selectedLPOId !== ""}
+                className={`w-full bg-[#0f172a] border border-slate-700 rounded-lg text-sm text-slate-200 px-3 py-2.5 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none ${selectedLPOId !== "" ? 'opacity-70 cursor-not-allowed' : ''}`}
                 placeholder="e.g. Hikvision Distributors Ltd"
               />
             </div>
