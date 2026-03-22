@@ -223,7 +223,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">
+            <p className="text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-white mb-1 truncate" title={formatPrice(totalInventoryValue)}>
               {formatPrice(totalInventoryValue)}
             </p>
             <p className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
@@ -242,7 +242,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">
+            <p className="text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-white mb-1 truncate" title={formatPrice(todaysRevenue)}>
               {formatPrice(todaysRevenue)}
             </p>
             <p className="text-[10px] font-bold text-purple-500 uppercase">
@@ -261,7 +261,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white mb-1">
+            <p className="text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-white mb-1 truncate" title={formatPrice(todaysProfit)}>
               {formatPrice(todaysProfit)}
             </p>
             <p className="text-[10px] font-bold text-teal-500 uppercase">
@@ -281,7 +281,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="relative z-10">
-            <p className="text-2xl font-bold text-white mb-1">
+            <p className="text-xl md:text-2xl lg:text-xl xl:text-2xl font-bold text-white mb-1 truncate">
               {lowStockCount} Items
             </p>
             <p className="text-[10px] font-bold text-emerald-500 uppercase">

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -17,6 +18,7 @@ import ProductDetailsModal from "../components/ProductDetailsModal";
 import ConfirmModal from "../components/ConfirmModal";
 
 export default function Products() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,7 +33,21 @@ export default function Products() {
     text: string;
   } | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+
+  useEffect(() => {
+    const search = searchParams.get("search");
+    if (search !== null) {
+      setSearchQuery(search);
+    }
+  }, [searchParams]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setSearchParams(value ? { search: value } : {});
+  };
+
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [brandFilter, setBrandFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -140,7 +156,7 @@ export default function Products() {
               placeholder="Search by name, brand..."
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
+                handleSearchChange(e);
                 setCurrentPage(1);
               }}
             />

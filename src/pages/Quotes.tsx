@@ -7,7 +7,6 @@ import {
   Filter,
   Download,
   Eye,
-  EyeOff,
   CheckCircle,
   XCircle,
   Clock,
@@ -111,16 +110,6 @@ export default function Quotes() {
       setQuoteToDelete(null);
     } catch (error) {
       console.error("Failed to delete quote:", error);
-    }
-  };
-
-  const handleToggleVisibility = async (quote: Quote) => {
-    try {
-      await db.quotes.update(quote.id!, {
-        isVisibleToCashier: quote.isVisibleToCashier === false ? true : false,
-      });
-    } catch (error) {
-      console.error("Failed to update quote visibility:", error);
     }
   };
 
@@ -361,25 +350,6 @@ export default function Quotes() {
                         </button>
                         {(role === "Admin" || role === "Super Admin" || role === "Manager") && (
                           <>
-                            <button
-                              onClick={() => handleToggleVisibility(quote)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                quote.isVisibleToCashier === false
-                                  ? "text-rose-400 hover:bg-rose-400/10"
-                                  : "text-emerald-400 hover:bg-emerald-400/10"
-                              }`}
-                              title={
-                                quote.isVisibleToCashier === false
-                                  ? "Hidden from Cashier (Click to show)"
-                                  : "Visible to Cashier (Click to hide)"
-                              }
-                            >
-                              {quote.isVisibleToCashier === false ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
                             <button
                               onClick={() => handleEditQuote(quote)}
                               className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"

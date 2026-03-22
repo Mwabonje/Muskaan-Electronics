@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Outlet, NavLink, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ShoppingCart,
   LayoutDashboard,
@@ -36,6 +36,7 @@ export default function Layout() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, role, logout, isLoading } = useAuth();
 
   useEffect(() => {
@@ -113,6 +114,42 @@ export default function Layout() {
     await logout();
     navigate("/login");
   };
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const products = useLiveQuery(() => db.products.toArray(), []) || [];
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.brand.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query)
+    ).slice(0, 5); // Limit to 5 results
+  }, [products, searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === "/inventory") {
+      setSearchQuery(searchParams.get("search") || "");
+    } else {
+      setSearchQuery("");
+    }
+  }, [location.pathname, searchParams]);
 
   return (
     <div className="flex min-h-screen bg-[#0f172a] text-slate-300 font-display relative">
@@ -230,13 +267,81 @@ export default function Layout() {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="relative hidden md:block w-full max-w-md">
+            <div className="relative hidden md:block w-full max-w-md" ref={searchContainerRef}>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search items..."
+                value={searchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchFocused(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsSearchFocused(false);
+                    navigate(`/inventory?search=${encodeURIComponent(searchQuery)}`);
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2 bg-[#1e293b] border border-slate-700/50 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
               />
+              
+              {/* Search Results Dropdown */}
+              {isSearchFocused && searchQuery.trim() !== "" && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1e293b] border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
+                  {searchResults.length > 0 ? (
+                    <div className="py-2">
+                      {searchResults.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => {
+                            setIsSearchFocused(false);
+                            navigate(`/inventory?search=${encodeURIComponent(product.name)}`);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-slate-800 transition-colors flex items-center justify-between group"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-slate-200 group-hover:text-blue-400 transition-colors">
+                              {product.name}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {product.brand} • {product.category}
+                            </span>
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className="text-sm font-bold text-slate-300">
+                              Ksh {typeof product.selling === 'number' ? product.selling.toLocaleString() : parseFloat(product.selling.toString().replace(/[^0-9.-]+/g, "") || "0").toLocaleString()}
+                            </span>
+                            <span className={cn(
+                              "text-[10px] font-bold uppercase tracking-wider",
+                              product.stock > 10 ? "text-emerald-400" : 
+                              product.stock > 0 ? "text-amber-400" : "text-rose-400"
+                            )}>
+                              {product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                      <div className="border-t border-slate-700 mt-2 pt-2 px-2">
+                        <button
+                          onClick={() => {
+                            setIsSearchFocused(false);
+                            navigate(`/inventory?search=${encodeURIComponent(searchQuery)}`);
+                          }}
+                          className="w-full text-center py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-slate-800 rounded-md transition-colors"
+                        >
+                          View all results for "{searchQuery}"
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-slate-500">
+                      No products found matching "{searchQuery}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4">
