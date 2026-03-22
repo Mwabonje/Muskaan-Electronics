@@ -1,391 +1,232 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { db, type Message, type User } from "../db/db";
-import { Mail, Send, Inbox, AlertCircle, CheckCircle2, X, ChevronDown, ChevronUp } from "lucide-react";
+import { db, type User } from "../db/db";
+import { Search, Settings, Smile, Paperclip, Send, User as UserIcon } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 
 export default function Messages() {
   const { user, role } = useAuth();
-  const [activeTab, setActiveTab] = useState<"inbox" | "sent" | "compose">(
-    "inbox",
-  );
-  const [subject, setSubject] = useState("");
-  const [content, setContent] = useState("");
-  const [receiverId, setReceiverId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string | number | null>(null);
+  const [newMessage, setNewMessage] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [successMsg, setSuccessMsg] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [expandedMessageId, setExpandedMessageId] = useState<number | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch users for the recipient dropdown
+  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       const allUsers = await db.users.toArray();
-      // Filter out the current user
       setUsers(allUsers.filter((u) => u.id !== user?.id));
     };
     fetchUsers();
   }, [user?.id]);
 
-  // Fetch messages
-  const inboxMessages = useLiveQuery(async () => {
+  // Fetch all messages
+  const allMessages = useLiveQuery(async () => {
     if (!user?.id) return [];
-    const allMessages = await db.messages.toArray();
-    return allMessages
-      .filter((m) => {
-        if (String(m.receiverId) === String(user.id)) return true;
-        if (m.receiverId === "super_admin" && role === "Super Admin") return true;
-        if (m.receiverId === "all_managers" && (role === "Manager" || role === "Admin" || role === "Super Admin")) return true;
-        return false;
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [user?.id, role]);
-
-  const sentMessages = useLiveQuery(async () => {
-    if (!user?.id) return [];
-    const allMessages = await db.messages.toArray();
-    return allMessages
-      .filter((m) => String(m.senderId) === String(user.id))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const msgs = await db.messages.toArray();
+    return msgs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [user?.id]);
+
+  // Filter messages for selected conversation
+  const conversationMessages = allMessages?.filter((m) => {
+    if (!selectedUserId) return false;
+    const isFromMeToThem = String(m.senderId) === String(user?.id) && String(m.receiverId) === String(selectedUserId);
+    const isFromThemToMe = String(m.senderId) === String(selectedUserId) && String(m.receiverId) === String(user?.id);
+    return isFromMeToThem || isFromThemToMe;
+  }) || [];
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversationMessages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
-    setSuccessMsg("");
-
-    if (!user?.id || !user?.name) return;
-    if (!receiverId) {
-      setErrorMsg("Please select a recipient.");
-      return;
-    }
-    if (!subject.trim() || !content.trim()) {
-      setErrorMsg("Subject and content are required.");
-      return;
-    }
+    if (!user?.id || !user?.name || !selectedUserId || !newMessage.trim()) return;
 
     try {
-      const parsedReceiverId =
-        receiverId === "super_admin" || receiverId === "all_managers"
-          ? receiverId
-          : Number(receiverId);
-
       await db.messages.add({
         senderId: user.id,
         senderName: user.name,
         senderRole: role,
-        receiverId: parsedReceiverId,
-        subject,
-        content,
+        receiverId: selectedUserId,
+        subject: "Chat Message",
+        content: newMessage.trim(),
         date: new Date().toISOString(),
         read: false,
         type: "user",
       });
-
-      setSuccessMsg("Message sent successfully!");
-      setSubject("");
-      setContent("");
-      setReceiverId("");
-      setActiveTab("sent");
-
-      setTimeout(() => setSuccessMsg(""), 3000);
+      setNewMessage("");
     } catch (err) {
       console.error("Failed to send message:", err);
-      setErrorMsg("Failed to send message. Please try again.");
     }
   };
 
-  const markAsRead = async (id: number) => {
-    try {
-      await db.messages.update(id, { read: true });
-    } catch (err) {
-      console.error("Failed to mark message as read:", err);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatTime = (dateString: string) => {
     return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-    }).format(date);
+    }).format(new Date(dateString));
   };
 
-  const getRecipientName = (recId: number | string) => {
-    if (recId === "super_admin") return "Super Admin";
-    if (recId === "all_managers") return "All Managers";
-    const recipient = users.find((u) => String(u.id) === String(recId));
-    return recipient ? recipient.name : "Unknown User";
-  };
+  const selectedUser = users.find((u) => String(u.id) === String(selectedUserId));
+
+  // Mark as read
+  useEffect(() => {
+    if (selectedUserId && conversationMessages.length > 0) {
+      conversationMessages.forEach(async (msg) => {
+        if (String(msg.receiverId) === String(user?.id) && !msg.read && msg.id) {
+          await db.messages.update(msg.id, { read: true });
+        }
+      });
+    }
+  }, [selectedUserId, conversationMessages, user?.id]);
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 bg-[#0f172a] min-h-full text-slate-300">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Messages</h1>
-          <p className="text-slate-400">
-            Internal communication and system notifications.
-          </p>
-        </div>
-        <button
-          onClick={() => setActiveTab("compose")}
-          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          <Send className="w-4 h-4" />
-          <span>Compose Message</span>
-        </button>
-      </div>
-
-      {successMsg && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-lg flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5" />
-          <p>{successMsg}</p>
-        </div>
-      )}
-
-      {errorMsg && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-lg flex items-center gap-3">
-          <AlertCircle className="w-5 h-5" />
-          <p>{errorMsg}</p>
-        </div>
-      )}
-
-      <div className="bg-[#1e293b] rounded-xl border border-slate-800 overflow-hidden flex flex-col md:flex-row min-h-[500px]">
-        {/* Sidebar */}
-        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-800 bg-[#0B1120] p-4 flex flex-col gap-2 shrink-0">
-          <button
-            onClick={() => setActiveTab("inbox")}
-            className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-              activeTab === "inbox"
-                ? "bg-blue-600/20 text-blue-400 font-medium"
-                : "text-slate-400 hover:bg-[#1e293b] hover:text-slate-200"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Inbox className="w-5 h-5" />
-              <span>Inbox</span>
-            </div>
-            {inboxMessages &&
-              inboxMessages.filter((m) => !m.read).length > 0 && (
-                <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {inboxMessages.filter((m) => !m.read).length}
-                </span>
-              )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("sent")}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              activeTab === "sent"
-                ? "bg-blue-600/20 text-blue-400 font-medium"
-                : "text-slate-400 hover:bg-[#1e293b] hover:text-slate-200"
-            }`}
-          >
-            <Send className="w-5 h-5" />
-            <span>Sent</span>
-          </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 p-0 flex flex-col h-[500px] overflow-y-auto">
-          {activeTab === "compose" && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">New Message</h2>
-                <button
-                  onClick={() => setActiveTab("inbox")}
-                  className="text-slate-400 hover:text-white transition-colors"
+    <div className="p-4 sm:p-8 h-[calc(100vh-4rem)] bg-[#0f172a]">
+      <div className="bg-white rounded-2xl overflow-hidden flex h-full shadow-2xl">
+        {/* Sidebar (Users List) */}
+        <div className="w-80 border-r border-slate-100 flex flex-col bg-white shrink-0">
+          <div className="p-6 border-b border-slate-100">
+            <h2 className="text-2xl font-bold text-slate-800">Messages</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {users.map((u) => {
+              const unreadCount = allMessages?.filter(m => String(m.senderId) === String(u.id) && String(m.receiverId) === String(user?.id) && !m.read).length || 0;
+              return (
+                <div
+                  key={u.id}
+                  onClick={() => setSelectedUserId(u.id!)}
+                  className={`p-4 border-b border-slate-50 cursor-pointer flex items-center gap-4 transition-colors ${String(selectedUserId) === String(u.id) ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} alt={u.name} className="w-full h-full object-cover" />
+                    </div>
+                    {u.status === 'Active' && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-800 truncate">{u.name}</h3>
+                    <p className="text-sm text-slate-500 truncate">{u.role}</p>
+                  </div>
+                  {unreadCount > 0 && (
+                    <div className="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">
+                      {unreadCount}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col bg-white">
+          {selectedUser ? (
+            <>
+              {/* Chat Header */}
+              <div className="h-20 border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.name}`} alt={selectedUser.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-slate-800 text-lg">{selectedUser.name}</h2>
+                    <p className="text-sm text-slate-500">Active Now</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 text-slate-400">
+                  <button className="hover:text-slate-600 transition-colors"><Search className="w-6 h-6" /></button>
+                  <button className="hover:text-slate-600 transition-colors"><Settings className="w-6 h-6" /></button>
+                </div>
               </div>
 
-              <form
-                onSubmit={handleSendMessage}
-                className="space-y-4 max-w-2xl"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">
-                    To
-                  </label>
-                  <select
-                    value={receiverId}
-                    onChange={(e) => setReceiverId(e.target.value)}
-                    className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    required
-                  >
-                    <option value="" disabled>
-                      Select recipient...
-                    </option>
-                    {role !== "Super Admin" && (
-                      <option value="super_admin">
-                        Super Admin (System Support)
-                      </option>
-                    )}
-                    {role === "Super Admin" && (
-                      <option value="all_managers">All Managers</option>
-                    )}
-                    <optgroup label="Individual Users">
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.role})
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
+              {/* Chat Messages */}
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
+                {conversationMessages.map((msg) => {
+                  const isMe = String(msg.senderId) === String(user?.id);
+                  return (
+                    <div key={msg.id} className={`flex items-end gap-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      {!isMe && (
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1">
+                           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderName}`} alt={msg.senderName} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      
+                      {isMe && (
+                        <span className="text-xs text-slate-400 mb-2 font-medium">
+                          {formatTime(msg.date)}
+                        </span>
+                      )}
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Enter message subject"
-                    className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder:text-slate-600"
-                    required
-                  />
-                </div>
+                      <div 
+                        className={`px-6 py-4 text-[15px] max-w-[60%] shadow-sm ${
+                          isMe 
+                            ? 'bg-[#f8f9fa] text-slate-700 rounded-3xl rounded-tr-sm' 
+                            : 'bg-[#eef2ff] text-slate-700 rounded-3xl rounded-tl-sm'
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-1">
-                    Message
-                  </label>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Type your message here..."
-                    rows={8}
-                    className="w-full bg-[#0f172a] border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder:text-slate-600 resize-none"
-                    required
-                  ></textarea>
-                </div>
+                      {!isMe && (
+                        <span className="text-xs text-slate-400 mb-2 font-medium">
+                          {formatTime(msg.date)}
+                        </span>
+                      )}
 
-                <div className="pt-2 flex justify-end">
+                      {isMe && (
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1">
+                           <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} alt={user?.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-6 bg-white">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-4">
+                  <div className="flex-1 text-[15px]">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message"
+                      className="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 py-2 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-5 text-slate-400 px-2">
+                    <button type="button" className="hover:text-slate-600 transition-colors"><Smile className="w-6 h-6" /></button>
+                    <button type="button" className="hover:text-slate-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
+                  </div>
                   <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    disabled={!newMessage.trim()}
+                    className="bg-[#3b82f6] hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm"
                   >
+                    <span>Send</span>
                     <Send className="w-4 h-4" />
-                    <span>Send Message</span>
                   </button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-slate-400 bg-slate-50/50">
+              <div className="text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <UserIcon className="w-10 h-10 text-slate-300" />
                 </div>
-              </form>
-            </div>
-          )}
-
-          {activeTab === "inbox" && (
-            <div className="flex flex-col h-full">
-              {!inboxMessages || inboxMessages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
-                  <Inbox className="w-12 h-12 mb-4 opacity-20" />
-                  <p>Your inbox is empty.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/50">
-                  {inboxMessages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50 cursor-pointer ${!msg.read ? "bg-blue-900/10" : ""}`}
-                      onClick={() => {
-                        if (!msg.read && msg.id) markAsRead(msg.id);
-                        setExpandedMessageId(expandedMessageId === msg.id ? null : (msg.id || null));
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-3">
-                          {!msg.read && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></div>
-                          )}
-                          <h3
-                            className={`font-medium ${!msg.read ? "text-white" : "text-slate-300"}`}
-                          >
-                            {msg.subject}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs text-slate-500 whitespace-nowrap">
-                            {formatDate(msg.date)}
-                          </span>
-                          {expandedMessageId === msg.id ? (
-                            <ChevronUp className="w-4 h-4 text-slate-500" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-500" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-400 mb-3 pl-5">
-                        <span className="font-medium text-slate-300">
-                          {msg.senderName}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                          {msg.senderRole}
-                        </span>
-                      </div>
-                      {expandedMessageId === msg.id && (
-                        <p className="text-sm text-slate-400 pl-5 whitespace-pre-wrap mt-4 border-t border-slate-800/50 pt-4">
-                          {msg.content}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "sent" && (
-            <div className="flex flex-col h-full">
-              {!sentMessages || sentMessages.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
-                  <Send className="w-12 h-12 mb-4 opacity-20" />
-                  <p>You haven't sent any messages yet.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-800/50">
-                  {sentMessages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className="p-4 sm:p-6 transition-colors hover:bg-[#0f172a]/50 cursor-pointer"
-                      onClick={() => setExpandedMessageId(expandedMessageId === msg.id ? null : (msg.id || null))}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium text-slate-300">
-                          {msg.subject}
-                        </h3>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs text-slate-500 whitespace-nowrap">
-                            {formatDate(msg.date)}
-                          </span>
-                          {expandedMessageId === msg.id ? (
-                            <ChevronUp className="w-4 h-4 text-slate-500" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4 text-slate-500" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
-                        <span>
-                          To:{" "}
-                          <span className="font-medium text-slate-300">
-                            {getRecipientName(msg.receiverId)}
-                          </span>
-                        </span>
-                      </div>
-                      {expandedMessageId === msg.id && (
-                        <p className="text-sm text-slate-400 whitespace-pre-wrap mt-4 border-t border-slate-800/50 pt-4">
-                          {msg.content}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                <p className="text-lg font-medium text-slate-500">Select a user to start messaging</p>
+              </div>
             </div>
           )}
         </div>

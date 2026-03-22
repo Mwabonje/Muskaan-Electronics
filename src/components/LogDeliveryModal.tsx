@@ -208,7 +208,7 @@ export default function LogDeliveryModal({
       }
 
       // Update LPO status to Delivered
-      if (selectedLPOId !== "") {
+      if (selectedLPOId) {
         await db.lpos.update(Number(selectedLPOId), { status: "Delivered" });
       }
 
