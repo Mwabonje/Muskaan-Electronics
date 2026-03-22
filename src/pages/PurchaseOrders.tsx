@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import ViewLPOModal from "../components/ViewLPOModal";
 import CreateLPOModal from "../components/CreateLPOModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
 
@@ -27,6 +28,7 @@ export default function PurchaseOrders() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [lpoToEdit, setLpoToEdit] = useState<LPO | null>(null);
+  const [lpoToDelete, setLpoToDelete] = useState<LPO | null>(null);
   const itemsPerPage = 15;
 
   const filteredLPOs = lpos.filter((lpo) => {
@@ -97,12 +99,11 @@ export default function PurchaseOrders() {
   };
 
   const handleDeleteLPO = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this LPO?")) {
-      try {
-        await db.lpos.delete(id);
-      } catch (error) {
-        console.error("Failed to delete LPO:", error);
-      }
+    try {
+      await db.lpos.delete(id);
+      setLpoToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete LPO:", error);
     }
   };
 
@@ -257,7 +258,7 @@ export default function PurchaseOrders() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteLPO(lpo.id!)}
+                            onClick={() => setLpoToDelete(lpo)}
                             className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
                             title="Delete LPO"
                           >
@@ -332,6 +333,22 @@ export default function PurchaseOrders() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         lpoToEdit={lpoToEdit}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!lpoToDelete}
+        title="Delete LPO"
+        message={`Are you sure you want to delete LPO-${(lpoToDelete?.id?.toString() || "").padStart(4, "0")}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (lpoToDelete?.id) {
+            handleDeleteLPO(lpoToDelete.id);
+          }
+        }}
+        onCancel={() => setLpoToDelete(null)}
+        isDestructive={true}
       />
     </div>
   );

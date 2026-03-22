@@ -20,9 +20,10 @@ import { db, type User, type Role } from "../db/db";
 import { useAuth } from "../context/AuthContext";
 import { getSystemSetting, setSystemSetting } from "../utils/settings";
 import { supabase } from "../supabase";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function Users() {
-  const { role: currentUserRole } = useAuth();
+  const { role: currentUserRole, user: currentUser } = useAuth();
   const users = useLiveQuery(() => db.users.toArray(), []) || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +31,7 @@ export default function Users() {
   const [showPassword, setShowPassword] = useState(false);
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const [quotesEnabled, setQuotesEnabled] = useState(true);
 
@@ -108,7 +110,13 @@ export default function Users() {
   };
 
   const handleDeleteUser = async (id: number) => {
-    await db.users.delete(id);
+    try {
+      await db.users.delete(id);
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      alert(`Failed to delete user: ${error.message || "Unknown error"}`);
+    }
   };
 
   const filteredUsers = users.filter((user) => {
@@ -283,8 +291,8 @@ export default function Users() {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => user.id && handleDeleteUser(user.id)}
-                        disabled={user.role === "Super Admin"}
+                        onClick={() => user.id && setUserToDelete(user)}
+                        disabled={user.role === "Super Admin" || user.id === currentUser?.id}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -447,6 +455,21 @@ export default function Users() {
           </div>
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!userToDelete}
+        title="Delete User"
+        message={`Are you sure you want to delete ${userToDelete?.name}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (userToDelete?.id) {
+            handleDeleteUser(userToDelete.id);
+          }
+        }}
+        onCancel={() => setUserToDelete(null)}
+        isDestructive={true}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import ViewQuoteModal from "../components/ViewQuoteModal";
 import NewQuoteModal from "../components/NewQuoteModal";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { canViewActivity } from "../utils/permissions";
 import { getSystemSetting, setSystemSetting } from "../utils/settings";
@@ -29,6 +30,7 @@ export default function Quotes() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [quoteToEdit, setQuoteToEdit] = useState<Quote | null>(null);
+  const [quoteToDelete, setQuoteToDelete] = useState<Quote | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const filteredQuotes = quotes.filter((quote) => {
@@ -104,12 +106,11 @@ export default function Quotes() {
   };
 
   const handleDeleteQuote = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this quote?")) {
-      try {
-        await db.quotes.delete(id);
-      } catch (error) {
-        console.error("Failed to delete quote:", error);
-      }
+    try {
+      await db.quotes.delete(id);
+      setQuoteToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete quote:", error);
     }
   };
 
@@ -387,7 +388,7 @@ export default function Quotes() {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteQuote(quote.id!)}
+                              onClick={() => setQuoteToDelete(quote)}
                               className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
                               title="Delete Quote"
                             >
@@ -420,6 +421,22 @@ export default function Quotes() {
           setQuoteToEdit(null);
         }}
         quoteToEdit={quoteToEdit}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!quoteToDelete}
+        title="Delete Quote"
+        message={`Are you sure you want to delete Q-${(quoteToDelete?.id?.toString() || "").padStart(4, "0")}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (quoteToDelete?.id) {
+            handleDeleteQuote(quoteToDelete.id);
+          }
+        }}
+        onCancel={() => setQuoteToDelete(null)}
+        isDestructive={true}
       />
     </div>
   );

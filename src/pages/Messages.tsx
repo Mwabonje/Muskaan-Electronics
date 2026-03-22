@@ -45,18 +45,37 @@ export default function Messages() {
     if (!user?.id || !user?.name || !selectedUserId || !newMessage.trim()) return;
 
     try {
+      const messageContent = newMessage.trim();
+      
       await db.messages.add({
         senderId: user.id,
         senderName: user.name,
         senderRole: role,
         receiverId: selectedUserId,
         subject: "Chat Message",
-        content: newMessage.trim(),
+        content: messageContent,
         date: new Date().toISOString(),
         read: false,
         type: "user",
       });
       setNewMessage("");
+
+      // Send email notification
+      const recipient = users.find((u) => String(u.id) === String(selectedUserId));
+      if (recipient && recipient.email) {
+        fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to: recipient.email,
+            subject: `New message from ${user.name}`,
+            text: `You have a new message from ${user.name}:\n\n"${messageContent}"\n\nLog in to reply.`,
+          }),
+        }).catch(err => console.error("Failed to send email notification:", err));
+      }
+
     } catch (err) {
       console.error("Failed to send message:", err);
     }
