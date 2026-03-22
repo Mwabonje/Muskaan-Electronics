@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { db, type User } from "../db/db";
-import { Search, Settings, Smile, Paperclip, Send, User as UserIcon } from "lucide-react";
+import { Search, Settings, Smile, Paperclip, Send, User as UserIcon, Trash2 } from "lucide-react";
 import { useLiveQuery } from "../hooks/useLiveQuery";
 
 export default function Messages() {
@@ -59,6 +59,14 @@ export default function Messages() {
       setNewMessage("");
     } catch (err) {
       console.error("Failed to send message:", err);
+    }
+  };
+
+  const handleUnsend = async (messageId: number) => {
+    try {
+      await db.messages.delete(messageId);
+    } catch (err) {
+      console.error("Failed to unsend message:", err);
     }
   };
 
@@ -152,7 +160,7 @@ export default function Messages() {
                 {conversationMessages.map((msg) => {
                   const isMe = String(msg.senderId) === String(user?.id);
                   return (
-                    <div key={msg.id} className={`flex items-end gap-4 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.id} className={`flex items-end gap-4 group ${isMe ? 'justify-end' : 'justify-start'}`}>
                       {!isMe && (
                         <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1">
                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderName}`} alt={msg.senderName} className="w-full h-full object-cover" />
@@ -163,6 +171,16 @@ export default function Messages() {
                         <span className="text-xs text-slate-400 mb-2 font-medium">
                           {formatTime(msg.date)}
                         </span>
+                      )}
+
+                      {isMe && (
+                        <button
+                          onClick={() => msg.id && handleUnsend(msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1 mb-2"
+                          title="Unsend message"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       )}
 
                       <div 
