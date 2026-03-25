@@ -150,7 +150,7 @@ export default function Products() {
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="flex-1">
           <div className="flex w-full items-center rounded-lg h-12 bg-white border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/50 px-4">
-            <Search className="text-slate-400 w-5 h-5" />
+            <Search className="text-slate-400 w-5 h-5 shrink-0" />
             <input
               className="w-full bg-transparent border-none outline-none px-3 text-sm"
               placeholder="Search by name, brand..."
@@ -162,9 +162,9 @@ export default function Products() {
             />
           </div>
         </div>
-        <div className="flex gap-3 overflow-x-auto">
+        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3">
           <select
-            className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
+            className="flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={categoryFilter}
             onChange={(e) => {
               setCategoryFilter(e.target.value);
@@ -178,7 +178,7 @@ export default function Products() {
             ))}
           </select>
           <select
-            className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
+            className="flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={brandFilter}
             onChange={(e) => {
               setBrandFilter(e.target.value);
@@ -191,8 +191,8 @@ export default function Products() {
               </option>
             ))}
           </select>
-          <button className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap">
-            <Filter className="w-4 h-4" />
+          <button className="col-span-2 sm:col-span-1 flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap">
+            <Filter className="w-4 h-4 shrink-0" />
             <span className="text-sm font-medium">More Filters</span>
           </button>
         </div>

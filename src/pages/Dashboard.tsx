@@ -294,7 +294,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Inventory Overview */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <List className="w-5 h-5 text-slate-400" />
               <h2 className="text-lg font-bold text-white">
@@ -314,7 +314,7 @@ export default function Dashboard() {
               </select>
               <button
                 onClick={handleExportCSV}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1e293b] border border-slate-700 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors whitespace-nowrap"
               >
                 <Download className="w-3.5 h-3.5" />
                 Export CSV
