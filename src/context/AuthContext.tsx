@@ -59,15 +59,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      loadUser(session);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Auth session error:", error);
+        // Clear the bad session state
+        supabase.auth.signOut().catch(console.error);
+        loadUser(null);
+      } else {
+        loadUser(session);
+      }
+    }).catch(error => {
+      console.error("Failed to get session:", error);
+      supabase.auth.signOut().catch(console.error);
+      loadUser(null);
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      loadUser(session);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        loadUser(null);
+      } else {
+        loadUser(session);
+      }
     });
 
     return () => {

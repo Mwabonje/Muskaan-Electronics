@@ -111,12 +111,12 @@ export default function Messages() {
   }, [selectedUserId, conversationMessages, user?.id]);
 
   return (
-    <div className="p-4 sm:p-8 h-[calc(100vh-4rem)] bg-[#0f172a]">
-      <div className="bg-white rounded-2xl overflow-hidden flex h-full shadow-2xl">
+    <div className="p-0 sm:p-4 md:p-8 h-[calc(100vh-4rem)] bg-[#0f172a]">
+      <div className="bg-white sm:rounded-2xl overflow-hidden flex h-full shadow-2xl relative">
         {/* Sidebar (Users List) */}
-        <div className="w-80 border-r border-slate-100 flex flex-col bg-white shrink-0">
-          <div className="p-6 border-b border-slate-100">
-            <h2 className="text-2xl font-bold text-slate-800">Messages</h2>
+        <div className={`w-full md:w-80 border-r border-slate-100 flex flex-col bg-white shrink-0 absolute md:relative z-10 h-full transition-transform duration-300 ${selectedUserId ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}`}>
+          <div className="p-4 sm:p-6 border-b border-slate-100">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Messages</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
             {users.map((u) => {
@@ -125,22 +125,22 @@ export default function Messages() {
                 <div
                   key={u.id}
                   onClick={() => setSelectedUserId(u.id!)}
-                  className={`p-4 border-b border-slate-50 cursor-pointer flex items-center gap-4 transition-colors ${String(selectedUserId) === String(u.id) ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+                  className={`p-3 sm:p-4 border-b border-slate-50 cursor-pointer flex items-center gap-3 sm:gap-4 transition-colors ${String(selectedUserId) === String(u.id) ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
                 >
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} alt={u.name} className="w-full h-full object-cover" />
                     </div>
                     {u.status === 'Active' && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-800 truncate">{u.name}</h3>
-                    <p className="text-sm text-slate-500 truncate">{u.role}</p>
+                    <h3 className="font-semibold text-slate-800 truncate text-sm sm:text-base">{u.name}</h3>
+                    <p className="text-xs sm:text-sm text-slate-500 truncate">{u.role}</p>
                   </div>
                   {unreadCount > 0 && (
-                    <div className="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center font-bold">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-blue-500 text-white text-[10px] sm:text-xs flex items-center justify-center font-bold">
                       {unreadCount}
                     </div>
                   )}
@@ -151,43 +151,49 @@ export default function Messages() {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className={`flex-1 flex flex-col bg-white w-full h-full absolute md:relative top-0 left-0 transition-opacity duration-300 ${selectedUserId ? 'opacity-100 z-20' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto md:z-0'}`}>
           {selectedUser ? (
             <>
               {/* Chat Header */}
-              <div className="h-20 border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
-                <div className="flex items-center gap-4">
+              <div className="h-16 sm:h-20 border-b border-slate-100 flex items-center justify-between px-4 sm:px-8 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <button 
+                    onClick={() => setSelectedUserId(null)}
+                    className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-800 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.name}`} alt={selectedUser.name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
-                    <h2 className="font-bold text-slate-800 text-lg">{selectedUser.name}</h2>
-                    <p className="text-sm text-slate-500">Active Now</p>
+                    <h2 className="font-bold text-slate-800 text-base sm:text-lg">{selectedUser.name}</h2>
+                    <p className="text-xs sm:text-sm text-slate-500">Active Now</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6 text-slate-400">
-                  <button className="hover:text-slate-600 transition-colors"><Search className="w-6 h-6" /></button>
-                  <button className="hover:text-slate-600 transition-colors"><Settings className="w-6 h-6" /></button>
+                <div className="flex items-center gap-4 sm:gap-6 text-slate-400">
+                  <button className="hover:text-slate-600 transition-colors hidden sm:block"><Search className="w-5 h-5 sm:w-6 sm:h-6" /></button>
+                  <button className="hover:text-slate-600 transition-colors"><Settings className="w-5 h-5 sm:w-6 sm:h-6" /></button>
                 </div>
               </div>
 
               {/* Chat Messages */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 bg-white">
                 {conversationMessages.map((msg) => {
                   const isMe = String(msg.senderId) === String(user?.id);
                   return (
-                    <div key={msg.id} className={`flex items-end gap-4 group ${isMe ? 'justify-end' : 'justify-start'}`}>
+                    <div key={msg.id} className={`flex items-end gap-2 sm:gap-4 group ${isMe ? 'justify-end' : 'justify-start'}`}>
                       {!isMe && (
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1 hidden sm:flex">
                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderName}`} alt={msg.senderName} className="w-full h-full object-cover" />
                         </div>
                       )}
                       
                       {isMe && (
-                        <span className="text-xs text-slate-400 mb-2 font-medium">
+                        <span className="text-[10px] sm:text-xs text-slate-400 mb-2 font-medium hidden sm:block">
                           {formatTime(msg.date)}
                         </span>
                       )}
@@ -203,23 +209,23 @@ export default function Messages() {
                       )}
 
                       <div 
-                        className={`px-6 py-4 text-[15px] max-w-[60%] shadow-sm ${
+                        className={`px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-[15px] max-w-[85%] sm:max-w-[60%] shadow-sm ${
                           isMe 
-                            ? 'bg-[#f8f9fa] text-slate-700 rounded-3xl rounded-tr-sm' 
-                            : 'bg-[#eef2ff] text-slate-700 rounded-3xl rounded-tl-sm'
+                            ? 'bg-[#f8f9fa] text-slate-700 rounded-2xl sm:rounded-3xl rounded-tr-sm' 
+                            : 'bg-[#eef2ff] text-slate-700 rounded-2xl sm:rounded-3xl rounded-tl-sm'
                         }`}
                       >
                         {msg.content}
                       </div>
 
                       {!isMe && (
-                        <span className="text-xs text-slate-400 mb-2 font-medium">
+                        <span className="text-[10px] sm:text-xs text-slate-400 mb-2 font-medium hidden sm:block">
                           {formatTime(msg.date)}
                         </span>
                       )}
 
                       {isMe && (
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 overflow-hidden mb-1 hidden sm:flex">
                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} alt={user?.name} className="w-full h-full object-cover" />
                         </div>
                       )}
@@ -230,9 +236,9 @@ export default function Messages() {
               </div>
 
               {/* Chat Input */}
-              <div className="p-6 bg-white">
-                <form onSubmit={handleSendMessage} className="flex items-center gap-4">
-                  <div className="flex-1 text-[15px]">
+              <div className="p-3 sm:p-6 bg-white border-t border-slate-100 sm:border-none">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2 sm:gap-4">
+                  <div className="flex-1 text-sm sm:text-[15px] bg-slate-50 sm:bg-transparent rounded-full sm:rounded-none px-4 sm:px-0 py-1 sm:py-0 border border-slate-200 sm:border-none">
                     <input
                       type="text"
                       value={newMessage}
@@ -241,23 +247,23 @@ export default function Messages() {
                       className="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 py-2 outline-none"
                     />
                   </div>
-                  <div className="flex items-center gap-5 text-slate-400 px-2">
-                    <button type="button" className="hover:text-slate-600 transition-colors"><Smile className="w-6 h-6" /></button>
+                  <div className="flex items-center gap-2 sm:gap-5 text-slate-400 px-1 sm:px-2">
+                    <button type="button" className="hover:text-slate-600 transition-colors hidden sm:block"><Smile className="w-5 h-5 sm:w-6 sm:h-6" /></button>
                     <button type="button" className="hover:text-slate-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
                   </div>
                   <button
                     type="submit"
                     disabled={!newMessage.trim()}
-                    className="bg-[#3b82f6] hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm"
+                    className="bg-[#3b82f6] hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-4 sm:px-8 py-2 sm:py-3 rounded-full sm:rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm"
                   >
-                    <span>Send</span>
+                    <span className="hidden sm:inline">Send</span>
                     <Send className="w-4 h-4" />
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-400 bg-slate-50/50">
+            <div className="flex-1 items-center justify-center text-slate-400 bg-slate-50/50 hidden md:flex flex-col">
               <div className="text-center">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                   <UserIcon className="w-10 h-10 text-slate-300" />
