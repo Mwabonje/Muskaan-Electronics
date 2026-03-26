@@ -254,7 +254,7 @@ export default function Reports() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-blue-500" />
+            <BarChart3 className="w-6 h-6 text-blue-500" aria-hidden="true" />
             Reports & Analytics
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -264,7 +264,7 @@ export default function Reports() {
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" aria-hidden="true" />
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
@@ -281,7 +281,7 @@ export default function Reports() {
             onClick={handleExportReport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             Export Report
           </button>
         </div>
@@ -293,7 +293,7 @@ export default function Reports() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-slate-400 text-sm font-medium">Net Revenue</h3>
             <div className="p-2 bg-emerald-500/10 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              <TrendingUp className="w-5 h-5 text-emerald-500" aria-hidden="true" />
             </div>
           </div>
           <p className="text-2xl font-bold text-white">
@@ -310,7 +310,7 @@ export default function Reports() {
               Estimated Profit
             </h3>
             <div className="p-2 bg-blue-500/10 rounded-lg">
-              <BarChart3 className="w-5 h-5 text-blue-500" />
+              <BarChart3 className="w-5 h-5 text-blue-500" aria-hidden="true" />
             </div>
           </div>
           <p className="text-2xl font-bold text-white">
@@ -323,7 +323,7 @@ export default function Reports() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-slate-400 text-sm font-medium">Items Sold</h3>
             <div className="p-2 bg-purple-500/10 rounded-lg">
-              <Package className="w-5 h-5 text-purple-500" />
+              <Package className="w-5 h-5 text-purple-500" aria-hidden="true" />
             </div>
           </div>
           <p className="text-2xl font-bold text-white">{totalItemsSold}</p>
@@ -336,7 +336,7 @@ export default function Reports() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-slate-400 text-sm font-medium">Refunds</h3>
             <div className="p-2 bg-rose-500/10 rounded-lg">
-              <RotateCcw className="w-5 h-5 text-rose-500" />
+              <RotateCcw className="w-5 h-5 text-rose-500" aria-hidden="true" />
             </div>
           </div>
           <p className="text-2xl font-bold text-white">
@@ -397,7 +397,7 @@ export default function Reports() {
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <Package className="w-8 h-8 mb-2 opacity-50" />
+                <Package className="w-8 h-8 mb-2 opacity-50" aria-hidden="true" />
                 <p className="text-sm">
                   No sales data available for this period.
                 </p>
@@ -456,7 +456,7 @@ export default function Reports() {
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <TrendingUp className="w-8 h-8 mb-2 opacity-50" />
+                <TrendingUp className="w-8 h-8 mb-2 opacity-50" aria-hidden="true" />
                 <p className="text-sm">
                   No sales trend data available for this period.
                 </p>
@@ -471,7 +471,7 @@ export default function Reports() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Package className="w-5 h-5 text-purple-500" />
+              <Package className="w-5 h-5 text-purple-500" aria-hidden="true" />
               Inventory Report
             </h3>
             <p className="text-sm text-slate-400 mt-1">

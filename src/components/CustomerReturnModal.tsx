@@ -234,9 +234,10 @@ export default function CustomerReturnModal({
             <h2 className="text-lg font-bold text-slate-800">Return Preview</h2>
             <button
               onClick={onClose}
+              aria-label="Close return preview"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
 
@@ -269,7 +270,7 @@ export default function CustomerReturnModal({
                     Customer
                   </p>
                   <div className="flex items-center gap-2 text-slate-800 font-medium">
-                    <User className="w-4 h-4 text-slate-400" />
+                    <User className="w-4 h-4 text-slate-400" aria-hidden="true" />
                     {customerName}
                   </div>
                 </div>
@@ -400,7 +401,7 @@ export default function CustomerReturnModal({
               onClick={handlePrint}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
             >
-              <FileText className="w-4 h-4" /> Print Return Note
+              <FileText className="w-4 h-4" aria-hidden="true" /> Print Return Note
             </button>
           </div>
         </div>
@@ -437,9 +438,10 @@ export default function CustomerReturnModal({
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -447,7 +449,7 @@ export default function CustomerReturnModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
-              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p>{error}</p>
             </div>
           )}
@@ -456,7 +458,7 @@ export default function CustomerReturnModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3 h-3" /> Customer Name{" "}
+                <User className="w-3 h-3" aria-hidden="true" /> Customer Name{" "}
                 <span className="text-rose-500">*</span>
               </label>
               <input
@@ -469,7 +471,7 @@ export default function CustomerReturnModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <AlertTriangle className="w-3 h-3" /> Item Condition{" "}
+                <AlertTriangle className="w-3 h-3" aria-hidden="true" /> Item Condition{" "}
                 <span className="text-rose-500">*</span>
               </label>
               <div className="flex gap-2">
@@ -518,7 +520,7 @@ export default function CustomerReturnModal({
                       : "text-slate-400 hover:text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  <f.icon className="w-3.5 h-3.5" />
+                  <f.icon className="w-3.5 h-3.5" aria-hidden="true" />
                   {f.label}
                 </button>
               ))}
@@ -563,10 +565,11 @@ export default function CustomerReturnModal({
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
+                      aria-label="Remove item"
                       className="mt-6 p-2.5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
                       disabled={cartItems.length === 1}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
 
@@ -616,7 +619,7 @@ export default function CustomerReturnModal({
               onClick={handleAddItem}
               className="w-full py-3 border border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-2 uppercase tracking-wider"
             >
-              <Plus className="w-4 h-4" /> Add Another Item
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add Another Item
             </button>
           </div>
 
@@ -635,7 +638,7 @@ export default function CustomerReturnModal({
           {/* Reason */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3 h-3" /> Reason for Return{" "}
+              <FileText className="w-3 h-3" aria-hidden="true" /> Reason for Return{" "}
               <span className="text-rose-500">*</span>
             </label>
             <textarea
@@ -648,7 +651,7 @@ export default function CustomerReturnModal({
 
           {/* Summary */}
           <div className="bg-rose-900/10 border border-rose-900/30 rounded-lg p-4 flex gap-3 items-start">
-            <RotateCcw className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <RotateCcw className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" aria-hidden="true" />
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">
                 Return Summary
@@ -678,7 +681,7 @@ export default function CustomerReturnModal({
             onClick={handleConfirmReturn}
             className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-rose-900/20"
           >
-            <RotateCcw className="w-4 h-4" /> Process Return
+            <RotateCcw className="w-4 h-4" aria-hidden="true" /> Process Return
           </button>
         </div>
       </div>

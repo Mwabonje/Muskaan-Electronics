@@ -150,6 +150,7 @@ export default function Users() {
           {(currentUserRole === "Admin" || currentUserRole === "Super Admin" || currentUserRole === "Manager") && (
             <button
               onClick={handleToggleQuotesAccess}
+              aria-label={`Toggle Cashier Quotes: ${quotesEnabled ? "ON" : "OFF"}`}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium border ${
                 quotesEnabled
                   ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
@@ -157,15 +158,16 @@ export default function Users() {
               }`}
               title={quotesEnabled ? "Disable Quotes for Cashiers" : "Enable Quotes for Cashiers"}
             >
-              {quotesEnabled ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              {quotesEnabled ? <CheckCircle className="w-4 h-4" aria-hidden="true" /> : <XCircle className="w-4 h-4" aria-hidden="true" />}
               Cashier Quotes: {quotesEnabled ? "ON" : "OFF"}
             </button>
           )}
           <button
             onClick={() => setIsModalOpen(true)}
+            aria-label="Add new user"
             className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20 hover:bg-primary/90 transition-colors"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
             <span>Add User</span>
           </button>
         </div>
@@ -174,8 +176,9 @@ export default function Users() {
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="flex-1">
           <div className="flex w-full items-center rounded-lg h-12 bg-white border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/50 px-4">
-            <Search className="text-slate-400 w-5 h-5" />
+            <Search className="text-slate-400 w-5 h-5" aria-hidden="true" />
             <input
+              aria-label="Search users"
               className="w-full bg-transparent border-none outline-none px-3 text-sm text-slate-900"
               placeholder="Search users by name or email..."
               value={searchQuery}
@@ -185,6 +188,7 @@ export default function Users() {
         </div>
         <div className="flex gap-3 overflow-x-auto">
           <select
+            aria-label="Filter by role"
             className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -196,6 +200,7 @@ export default function Users() {
             ))}
           </select>
           <select
+            aria-label="Filter by status"
             className="flex h-12 items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -253,9 +258,9 @@ export default function Users() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
                       {user.role === "Super Admin" ? (
-                        <Shield className="w-4 h-4 text-primary" />
+                        <Shield className="w-4 h-4 text-primary" aria-hidden="true" />
                       ) : (
-                        <UserIcon className="w-4 h-4 text-slate-400" />
+                        <UserIcon className="w-4 h-4 text-slate-400" aria-hidden="true" />
                       )}
                       <span
                         className={`text-sm font-medium ${user.role === "Super Admin" ? "text-primary" : "text-slate-700"}`}
@@ -287,15 +292,19 @@ export default function Users() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors">
-                        <Edit className="w-4 h-4" />
+                      <button
+                        aria-label={`Edit user ${user.name}`}
+                        className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      >
+                        <Edit className="w-4 h-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => user.id && setUserToDelete(user)}
                         disabled={user.role === "Super Admin" || user.id === currentUser?.id}
+                        aria-label={`Delete user ${user.name}`}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -324,19 +333,21 @@ export default function Users() {
               <h2 className="text-xl font-bold text-slate-900">Add New User</h2>
               <button
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Close add user modal"
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label htmlFor="firstName" className="text-sm font-medium text-slate-700">
                     First Name
                   </label>
                   <input
+                    id="firstName"
                     required
                     type="text"
                     value={formData.firstName}
@@ -348,10 +359,11 @@ export default function Users() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label htmlFor="lastName" className="text-sm font-medium text-slate-700">
                     Last Name
                   </label>
                   <input
+                    id="lastName"
                     required
                     type="text"
                     value={formData.lastName}
@@ -365,12 +377,13 @@ export default function Users() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="email" className="text-sm font-medium text-slate-700">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" aria-hidden="true" />
                   <input
+                    id="email"
                     required
                     type="email"
                     value={formData.email}
@@ -384,10 +397,11 @@ export default function Users() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="role" className="text-sm font-medium text-slate-700">
                   Role
                 </label>
                 <select
+                  id="role"
                   value={formData.role}
                   onChange={(e) =>
                     setFormData({ ...formData, role: e.target.value as Role })
@@ -404,12 +418,13 @@ export default function Users() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
+                <label htmlFor="tempPassword" className="text-sm font-medium text-slate-700">
                   Temporary Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" aria-hidden="true" />
                   <input
+                    id="tempPassword"
                     required
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
@@ -421,13 +436,14 @@ export default function Users() {
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="w-4 h-4" aria-hidden="true" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-4 h-4" aria-hidden="true" />
                     )}
                   </button>
                 </div>

@@ -110,7 +110,7 @@ export default function Login() {
         <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-200">
           <div className="pt-10 pb-6 px-8 flex flex-col items-center">
             <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
-              <MonitorSmartphone className="text-primary w-8 h-8" />
+              <MonitorSmartphone className="text-primary w-8 h-8" aria-hidden="true" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">
               Muskaan Electronics
@@ -136,7 +136,7 @@ export default function Login() {
                   Email
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" aria-hidden="true" />
                   <input
                     type="email"
                     id="username"
@@ -166,7 +166,7 @@ export default function Login() {
                   </a>
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" aria-hidden="true" />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
@@ -180,12 +180,13 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
+                      <EyeOff className="w-5 h-5" aria-hidden="true" />
                     ) : (
-                      <Eye className="w-5 h-5" />
+                      <Eye className="w-5 h-5" aria-hidden="true" />
                     )}
                   </button>
                 </div>
@@ -207,7 +208,7 @@ export default function Login() {
                 className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
               >
                 <span>Login to Account</span>
-                <LogIn className="w-4 h-4" />
+                <LogIn className="w-4 h-4" aria-hidden="true" />
               </button>
             </form>
           </div>

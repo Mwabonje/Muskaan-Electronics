@@ -140,7 +140,7 @@ export default function Deliveries() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Truck className="w-6 h-6 text-blue-500" />
+            <Truck className="w-6 h-6 text-blue-500" aria-hidden="true" />
             Deliveries
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -152,17 +152,19 @@ export default function Deliveries() {
           {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
             <button
               onClick={() => setIsClearModalOpen(true)}
+              aria-label="Clear deliveries history"
               className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg border border-rose-500/20 transition-colors text-sm font-medium"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
               Clear History
             </button>
           )}
           <button
             onClick={handleExportCSV}
+            aria-label="Export deliveries to CSV"
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             Export
           </button>
         </div>
@@ -171,10 +173,11 @@ export default function Deliveries() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search by supplier name or delivery ID..."
+            aria-label="Search deliveries"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -251,16 +254,18 @@ export default function Deliveries() {
                         }}
                         className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                         title="View Delivery Note"
+                        aria-label={`View delivery D-${(delivery.id?.toString() || "").padStart(4, "0")}`}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4" aria-hidden="true" />
                       </button>
                       {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
                         <button
                           onClick={() => setDeliveryToDelete(delivery)}
                           className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
                           title="Delete Delivery"
+                          aria-label={`Delete delivery D-${(delivery.id?.toString() || "").padStart(4, "0")}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -304,16 +309,18 @@ export default function Deliveries() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              aria-label="Previous page"
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
+              aria-label="Next page"
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

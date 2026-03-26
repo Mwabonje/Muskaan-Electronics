@@ -281,9 +281,10 @@ export default function POS() {
           <div className="flex items-center gap-2 sm:gap-4">
             <Link
               to="/dashboard"
+              aria-label="Back to dashboard"
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" aria-hidden="true" />
             </Link>
             <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">
               Point of Sale
@@ -292,16 +293,20 @@ export default function POS() {
 
           <div className="flex items-center flex-1 max-w-md justify-end">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 sm:w-5 h-4 sm:h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 sm:w-5 h-4 sm:h-5" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Search by name or category..."
+                aria-label="Search products"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary outline-none text-xs sm:text-sm"
               />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors hidden sm:block">
-                <ScanLine className="w-4 h-4" />
+              <button
+                aria-label="Scan barcode"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white rounded-md text-slate-500 shadow-sm border border-slate-200 hover:text-primary transition-colors hidden sm:block"
+              >
+                <ScanLine className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -314,6 +319,7 @@ export default function POS() {
               <button
                 key={category}
                 onClick={() => setActiveCategory(category)}
+                aria-label={`Filter by ${category}`}
                 className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
                   activeCategory === category
                     ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -333,6 +339,7 @@ export default function POS() {
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
+                aria-label={`Add ${product.name} to cart`}
                 className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all group text-left flex flex-col"
               >
                 <div className="aspect-square bg-slate-100 relative overflow-hidden">
@@ -371,9 +378,10 @@ export default function POS() {
       {/* Mobile Cart Toggle */}
       <button
         onClick={() => setIsCartOpen(true)}
+        aria-label="Open cart"
         className="lg:hidden fixed bottom-6 right-6 z-40 bg-primary text-white p-4 rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
       >
-        <ShoppingCart className="w-6 h-6" />
+        <ShoppingCart className="w-6 h-6" aria-hidden="true" />
         {cart.length > 0 && (
           <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
             {cart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -400,9 +408,10 @@ export default function POS() {
           <h2 className="text-lg font-bold text-slate-900">Current Order</h2>
           <button
             onClick={() => setIsCartOpen(false)}
+            aria-label="Close cart"
             className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -411,7 +420,7 @@ export default function POS() {
           {cart.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
               <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
-                <ShoppingCart className="w-8 h-8 text-slate-300" />
+                <ShoppingCart className="w-8 h-8 text-slate-300" aria-hidden="true" />
               </div>
               <p className="text-sm font-medium">Cart is empty</p>
             </div>
@@ -438,9 +447,10 @@ export default function POS() {
                       </h4>
                       <button
                         onClick={() => removeFromCart(item.product.id)}
+                        aria-label={`Remove ${item.product.name} from cart`}
                         className="text-slate-400 hover:text-rose-500 transition-colors p-1 opacity-0 group-hover:opacity-100"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
                     </div>
                     <div className="flex items-center justify-between mt-2">
@@ -450,13 +460,15 @@ export default function POS() {
                       <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
                         <button
                           onClick={() => updateQuantity(item.product.id, -1)}
+                          aria-label={`Decrease quantity of ${item.product.name}`}
                           className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3 h-3" aria-hidden="true" />
                         </button>
                         <input
                           type="number"
                           min="1"
+                          aria-label={`Quantity of ${item.product.name}`}
                           value={item.quantity || ""}
                           onChange={(e) => {
                             const val = parseInt(e.target.value, 10);
@@ -502,9 +514,10 @@ export default function POS() {
                         />
                         <button
                           onClick={() => updateQuantity(item.product.id, 1)}
+                          aria-label={`Increase quantity of ${item.product.name}`}
                           className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-100 text-slate-600 transition-colors"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-3 h-3" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -519,7 +532,7 @@ export default function POS() {
         <div className="border-t border-slate-200 p-6 shrink-0 bg-slate-50">
           {error && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-600 text-sm">
-              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p>{error}</p>
             </div>
           )}
@@ -552,25 +565,29 @@ export default function POS() {
             <button
               disabled={cart.length === 0}
               onClick={() => setPaymentMethod("Cash")}
+              aria-label="Select Cash payment method"
+              aria-pressed={paymentMethod === "Cash"}
               className={`flex items-center justify-center gap-2 py-3 bg-white border rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                 paymentMethod === "Cash"
                   ? "border-primary text-primary bg-primary/5"
                   : "border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
               }`}
             >
-              <Banknote className="w-5 h-5" />
+              <Banknote className="w-5 h-5" aria-hidden="true" />
               Cash
             </button>
             <button
               disabled={cart.length === 0}
               onClick={() => setPaymentMethod("Card")}
+              aria-label="Select Card payment method"
+              aria-pressed={paymentMethod === "Card"}
               className={`flex items-center justify-center gap-2 py-3 bg-white border rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${
                 paymentMethod === "Card"
                   ? "border-primary text-primary bg-primary/5"
                   : "border-slate-200 text-slate-700 hover:border-primary hover:text-primary"
               }`}
             >
-              <CreditCard className="w-5 h-5" />
+              <CreditCard className="w-5 h-5" aria-hidden="true" />
               Card
             </button>
           </div>
@@ -578,6 +595,7 @@ export default function POS() {
           <button
             disabled={cart.length === 0}
             onClick={handleCheckout}
+            aria-label={`Pay Ksh ${total.toFixed(2)}`}
             className="w-full py-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
           >
             Pay Ksh {total.toFixed(2)}
@@ -601,9 +619,10 @@ export default function POS() {
               </h2>
               <button
                 onClick={handleCloseReceipt}
+                aria-label="Close receipt"
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
@@ -692,15 +711,17 @@ export default function POS() {
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3 print:hidden">
               <button
                 onClick={handleCloseReceipt}
+                aria-label="Close receipt"
                 className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
               >
                 Close
               </button>
               <button
                 onClick={handlePrint}
+                aria-label="Print receipt"
                 className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
               >
-                <Printer className="w-4 h-4" /> Print Receipt
+                <Printer className="w-4 h-4" aria-hidden="true" /> Print Receipt
               </button>
             </div>
           </div>
@@ -713,7 +734,7 @@ export default function POS() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6">
               <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 mx-auto">
-                <Shield className="w-6 h-6 text-amber-600" />
+                <Shield className="w-6 h-6 text-amber-600" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-bold text-center text-slate-900 mb-2">
                 Insufficient Stock
@@ -723,6 +744,7 @@ export default function POS() {
               </p>
               <button
                 onClick={() => setStockWarning(null)}
+                aria-label="Close stock warning"
                 className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-medium transition-colors"
               >
                 Understood

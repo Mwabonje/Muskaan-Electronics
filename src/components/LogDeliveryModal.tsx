@@ -243,9 +243,10 @@ export default function LogDeliveryModal({
             </h2>
             <button
               onClick={onClose}
+              aria-label="Close delivery preview"
               className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
 
@@ -278,7 +279,7 @@ export default function LogDeliveryModal({
                     Supplier
                   </p>
                   <div className="flex items-center gap-2 text-slate-800 font-medium">
-                    <Building2 className="w-4 h-4 text-slate-400" />
+                    <Building2 className="w-4 h-4 text-slate-400" aria-hidden="true" />
                     {supplierName}
                   </div>
                 </div>
@@ -287,7 +288,7 @@ export default function LogDeliveryModal({
                     Received By
                   </p>
                   <div className="flex items-center gap-2 text-slate-800 font-medium">
-                    <User className="w-4 h-4 text-slate-400" />
+                    <User className="w-4 h-4 text-slate-400" aria-hidden="true" />
                     {receivedBy}
                   </div>
                 </div>
@@ -382,7 +383,7 @@ export default function LogDeliveryModal({
               onClick={handlePrint}
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
             >
-              <FileText className="w-4 h-4" /> Print Delivery Note
+              <FileText className="w-4 h-4" aria-hidden="true" /> Print Delivery Note
             </button>
           </div>
         </div>
@@ -405,9 +406,10 @@ export default function LogDeliveryModal({
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -415,7 +417,7 @@ export default function LogDeliveryModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
-              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p>{error}</p>
             </div>
           )}
@@ -424,7 +426,7 @@ export default function LogDeliveryModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5 sm:col-span-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-3 h-3" /> Select Approved LPO{" "}
+                <FileText className="w-3 h-3" aria-hidden="true" /> Select Approved LPO{" "}
                 <span className="text-emerald-500">*</span>
               </label>
               <select
@@ -442,7 +444,7 @@ export default function LogDeliveryModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Building2 className="w-3 h-3" /> Supplier Name{" "}
+                <Building2 className="w-3 h-3" aria-hidden="true" /> Supplier Name{" "}
                 <span className="text-emerald-500">*</span>
               </label>
               <input
@@ -456,7 +458,7 @@ export default function LogDeliveryModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <User className="w-3 h-3" /> Received By{" "}
+                <User className="w-3 h-3" aria-hidden="true" /> Received By{" "}
                 <span className="text-emerald-500">*</span>
               </label>
               <input
@@ -490,7 +492,7 @@ export default function LogDeliveryModal({
                       : "text-slate-400 hover:text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  <f.icon className="w-3.5 h-3.5" />
+                  <f.icon className="w-3.5 h-3.5" aria-hidden="true" />
                   {f.label}
                 </button>
               ))}
@@ -553,10 +555,11 @@ export default function LogDeliveryModal({
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
+                      aria-label="Remove item"
                       className="mt-6 p-2.5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
                       disabled={cartItems.length === 1}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -567,14 +570,14 @@ export default function LogDeliveryModal({
               onClick={handleAddItem}
               className="w-full py-3 border border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-2 uppercase tracking-wider"
             >
-              <Plus className="w-4 h-4" /> Add Another Item
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add Another Item
             </button>
           </div>
 
           {/* Notes */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3 h-3" /> Notes / Remarks
+              <FileText className="w-3 h-3" aria-hidden="true" /> Notes / Remarks
             </label>
             <textarea
               value={notes}
@@ -586,7 +589,7 @@ export default function LogDeliveryModal({
 
           {/* Summary */}
           <div className="bg-emerald-900/10 border border-emerald-900/30 rounded-lg p-4 flex gap-3 items-start">
-            <Truck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            <Truck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" aria-hidden="true" />
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">
                 Delivery Summary
@@ -615,7 +618,7 @@ export default function LogDeliveryModal({
             onClick={handleConfirmDelivery}
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
           >
-            <Truck className="w-4 h-4" /> Confirm Delivery
+            <Truck className="w-4 h-4" aria-hidden="true" /> Confirm Delivery
           </button>
         </div>
       </div>

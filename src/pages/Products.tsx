@@ -17,6 +17,14 @@ import { db, Product } from "../db/db";
 import ProductDetailsModal from "../components/ProductDetailsModal";
 import ConfirmModal from "../components/ConfirmModal";
 
+const formatPrice = (priceStr: string | number | undefined | null) => {
+  if (priceStr == null) return "Ksh 0.00";
+  if (typeof priceStr === "number")
+    return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
+  return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   const products = useLiveQuery(() => db.products.toArray(), []) || [];
@@ -86,14 +94,6 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
-  const formatPrice = (priceStr: string | number | undefined | null) => {
-    if (priceStr == null) return "Ksh 0.00";
-    if (typeof priceStr === "number")
-      return `Ksh ${priceStr.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    const num = parseFloat(priceStr.toString().replace(/[^0-9.-]+/g, "")) || 0;
-    return `Ksh ${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
   const handleImport = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -132,16 +132,18 @@ export default function Products() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => handleOpenModal()}
+            aria-label="Add Product"
             className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-md shadow-primary/20"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-2" aria-hidden="true" />
             <span>Add Product</span>
           </button>
           <button
             onClick={handleImport}
+            aria-label="Import Products"
             className="flex items-center justify-center rounded-lg h-10 px-4 bg-primary/10 text-primary text-sm font-bold"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
             <span>Import</span>
           </button>
         </div>
@@ -150,8 +152,9 @@ export default function Products() {
       <div className="flex flex-col lg:flex-row gap-4 mb-6">
         <div className="flex-1">
           <div className="flex w-full items-center rounded-lg h-12 bg-white border border-primary/10 shadow-sm focus-within:ring-2 focus-within:ring-primary/50 px-4">
-            <Search className="text-slate-400 w-5 h-5 shrink-0" />
+            <Search className="text-slate-400 w-5 h-5 shrink-0" aria-hidden="true" />
             <input
+              aria-label="Search products"
               className="w-full bg-transparent border-none outline-none px-3 text-sm"
               placeholder="Search by name, brand..."
               value={searchQuery}
@@ -164,6 +167,7 @@ export default function Products() {
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-row gap-3">
           <select
+            aria-label="Filter by category"
             className="flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={categoryFilter}
             onChange={(e) => {
@@ -178,6 +182,7 @@ export default function Products() {
             ))}
           </select>
           <select
+            aria-label="Filter by brand"
             className="flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap outline-none"
             value={brandFilter}
             onChange={(e) => {
@@ -191,8 +196,11 @@ export default function Products() {
               </option>
             ))}
           </select>
-          <button className="col-span-2 sm:col-span-1 flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap">
-            <Filter className="w-4 h-4 shrink-0" />
+          <button 
+            aria-label="More filters"
+            className="col-span-2 sm:col-span-1 flex h-12 w-full sm:w-auto items-center justify-center gap-x-2 rounded-lg bg-white border border-primary/10 px-4 text-slate-700 hover:border-primary transition-colors whitespace-nowrap"
+          >
+            <Filter className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span className="text-sm font-medium">More Filters</span>
           </button>
         </div>
@@ -283,15 +291,17 @@ export default function Products() {
                         onClick={() => handleOpenModal(product, "history")}
                         className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                         title="Stock History"
+                        aria-label={`View stock history for ${product.name}`}
                       >
-                        <History className="w-4 h-4" />
+                        <History className="w-4 h-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => handleOpenModal(product)}
                         className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="Edit Product"
+                        aria-label={`Edit product ${product.name}`}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-4 h-4" aria-hidden="true" />
                       </button>
                       <button
                         onClick={() => {
@@ -300,8 +310,9 @@ export default function Products() {
                         }}
                         className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
                         title="Delete Product"
+                        aria-label={`Delete product ${product.name}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
                     </div>
                   </td>
@@ -343,14 +354,17 @@ export default function Products() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              aria-label="Previous page"
               className="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/10 bg-white text-slate-400 hover:bg-primary hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             {Array.from({ length: totalPages }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
+                aria-label={`Page ${i + 1}`}
+                aria-current={currentPage === i + 1 ? "page" : undefined}
                 className={`flex items-center justify-center w-8 h-8 rounded-lg border border-primary/10 transition-colors ${
                   currentPage === i + 1
                     ? "bg-primary text-white font-medium"
@@ -363,9 +377,10 @@ export default function Products() {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
+              aria-label="Next page"
               className="flex items-center justify-center w-8 h-8 rounded-lg border border-primary/10 bg-white text-slate-400 hover:bg-primary hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

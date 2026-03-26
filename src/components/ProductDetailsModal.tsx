@@ -150,17 +150,17 @@ export default function ProductDetailsModal({
   const getChangeIcon = (type: string) => {
     switch (type) {
       case "Addition":
-        return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+        return <ArrowUpRight className="w-4 h-4 text-emerald-500" aria-hidden="true" />;
       case "Deduction":
-        return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
+        return <ArrowDownRight className="w-4 h-4 text-rose-500" aria-hidden="true" />;
       case "Sale":
-        return <ShoppingCart className="w-4 h-4 text-blue-500" />;
+        return <ShoppingCart className="w-4 h-4 text-blue-500" aria-hidden="true" />;
       case "Return":
-        return <RotateCcw className="w-4 h-4 text-amber-500" />;
+        return <RotateCcw className="w-4 h-4 text-amber-500" aria-hidden="true" />;
       case "Adjustment":
-        return <RefreshCw className="w-4 h-4 text-purple-500" />;
+        return <RefreshCw className="w-4 h-4 text-purple-500" aria-hidden="true" />;
       default:
-        return <Package className="w-4 h-4 text-slate-500" />;
+        return <Package className="w-4 h-4 text-slate-500" aria-hidden="true" />;
     }
   };
 
@@ -176,7 +176,7 @@ export default function ProductDetailsModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg text-primary">
-              <Package className="w-5 h-5" />
+              <Package className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -189,9 +189,10 @@ export default function ProductDetailsModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close product details"
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -216,7 +217,7 @@ export default function ProductDetailsModal({
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
-              <History className="w-4 h-4" />
+              <History className="w-4 h-4" aria-hidden="true" />
               Stock History
             </button>
           </div>
@@ -226,7 +227,7 @@ export default function ProductDetailsModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
           {error && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2 text-rose-600 text-sm">
-              <X className="w-4 h-4 mt-0.5 shrink-0" />
+              <X className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p>{error}</p>
             </div>
           )}
@@ -334,7 +335,7 @@ export default function ProductDetailsModal({
             <div className="space-y-4">
               {stockHistory.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
-                  <History className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <History className="w-12 h-12 mx-auto mb-3 text-slate-300" aria-hidden="true" />
                   <p className="text-base font-medium">No history found</p>
                   <p className="text-sm mt-1">
                     Stock changes will appear here.
@@ -431,7 +432,7 @@ export default function ProductDetailsModal({
               disabled={isSaving}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20 disabled:opacity-50"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4" aria-hidden="true" />
               {isSaving ? "Saving..." : "Save Product"}
             </button>
           </div>

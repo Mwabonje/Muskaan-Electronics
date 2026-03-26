@@ -159,17 +159,19 @@ export default function SalesHistory() {
           {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
             <button
               onClick={() => setIsClearModalOpen(true)}
+              aria-label="Clear sales history"
               className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg border border-rose-500/20 transition-colors text-sm font-medium"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
               Clear History
             </button>
           )}
           <button
             onClick={handleExportCSV}
+            aria-label="Export sales history to CSV"
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             Export
           </button>
         </div>
@@ -178,10 +180,11 @@ export default function SalesHistory() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search by customer name or sale ID..."
+            aria-label="Search sales"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -267,16 +270,18 @@ export default function SalesHistory() {
                         }}
                         className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
                         title="View Receipt"
+                        aria-label={`View receipt for sale S-${(sale.id?.toString() || "").padStart(4, "0")}`}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-4 h-4" aria-hidden="true" />
                       </button>
                       {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
                         <button
                           onClick={() => setSaleToDelete(sale)}
                           className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
                           title="Delete Sale"
+                          aria-label={`Delete sale S-${(sale.id?.toString() || "").padStart(4, "0")}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -320,16 +325,18 @@ export default function SalesHistory() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              aria-label="Previous page"
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
+              aria-label="Next page"
               className="p-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>

@@ -90,7 +90,7 @@ export default function ViewLPOModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a] print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-              <ClipboardList className="w-5 h-5" />
+              <ClipboardList className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <div className="flex items-center gap-3">
@@ -121,17 +121,19 @@ export default function ViewLPOModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
+              aria-label="Print LPO"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
               title="Print LPO"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-5 h-5" aria-hidden="true" />
               <span className="text-sm font-bold hidden sm:inline">Print</span>
             </button>
             <button
               onClick={onClose}
+              aria-label="Close LPO preview"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -140,14 +142,14 @@ export default function ViewLPOModal({
         <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 custom-scrollbar bg-white text-slate-900 print:overflow-visible print:p-4">
           {error && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-600 print:hidden">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}
 
           {lpo.status === "Rejected" && lpo.notes && lpo.notes.includes("Rejection Reason:") && (
             <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-700 print:hidden">
-              <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <XCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <p className="text-sm font-bold">LPO Rejected</p>
                 <p className="text-sm mt-1">{lpo.notes.split("Rejection Reason:")[1]?.trim()}</p>
@@ -184,7 +186,7 @@ export default function ViewLPOModal({
                   To (Supplier)
                 </p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
-                  <Building2 className="w-4 h-4 text-slate-400" />
+                  <Building2 className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   {lpo.supplierName}
                 </div>
               </div>
@@ -199,7 +201,7 @@ export default function ViewLPOModal({
                   {(lpo.id?.toString() || "").padStart(4, "0")}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <Calendar className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   Date: {new Date(lpo.date).toLocaleDateString()}
                 </div>
                 {lpo.expectedDeliveryDate && (
@@ -336,7 +338,7 @@ export default function ViewLPOModal({
                   onClick={handleReject}
                   className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <XCircle className="w-4 h-4" /> Confirm Rejection
+                  <XCircle className="w-4 h-4" aria-hidden="true" /> Confirm Rejection
                 </button>
               </div>
             </div>
@@ -350,7 +352,7 @@ export default function ViewLPOModal({
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <Edit className="w-4 h-4" /> Edit & Resubmit
+                  <Edit className="w-4 h-4" aria-hidden="true" /> Edit & Resubmit
                 </button>
               )}
               {canApproveReject && (
@@ -359,13 +361,13 @@ export default function ViewLPOModal({
                     onClick={() => setIsRejecting(true)}
                     className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 border border-rose-500/20"
                   >
-                    <XCircle className="w-4 h-4" /> Reject
+                    <XCircle className="w-4 h-4" aria-hidden="true" /> Reject
                   </button>
                   <button
                     onClick={handleApprove}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
                   >
-                    <CheckCircle className="w-4 h-4" /> Approve
+                    <CheckCircle className="w-4 h-4" aria-hidden="true" /> Approve
                   </button>
                 </>
               )}

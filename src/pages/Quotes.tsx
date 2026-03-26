@@ -145,7 +145,7 @@ export default function Quotes() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-500" />
+            <FileText className="w-6 h-6 text-blue-500" aria-hidden="true" />
             Quotes & Estimates
           </h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -157,6 +157,7 @@ export default function Quotes() {
           {(role === "Admin" || role === "Super Admin" || role === "Manager") && (
             <button
               onClick={handleToggleQuotesAccess}
+              aria-label={quotesEnabled ? "Disable Quotes for Cashiers" : "Enable Quotes for Cashiers"}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium border ${
                 quotesEnabled
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
@@ -164,15 +165,16 @@ export default function Quotes() {
               }`}
               title={quotesEnabled ? "Disable Quotes for Cashiers" : "Enable Quotes for Cashiers"}
             >
-              {quotesEnabled ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              {quotesEnabled ? <CheckCircle className="w-4 h-4" aria-hidden="true" /> : <XCircle className="w-4 h-4" aria-hidden="true" />}
               Cashier Access: {quotesEnabled ? "ON" : "OFF"}
             </button>
           )}
           <button
             onClick={handleExportCSV}
+            aria-label="Export quotes to CSV"
             className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-colors text-sm font-medium"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4" aria-hidden="true" />
             Export
           </button>
           <button
@@ -180,9 +182,10 @@ export default function Quotes() {
               setQuoteToEdit(null);
               setIsEditModalOpen(true);
             }}
+            aria-label="Create new quote"
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-bold shadow-lg shadow-blue-900/20"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4" aria-hidden="true" />
             New Quote
           </button>
         </div>
@@ -191,10 +194,11 @@ export default function Quotes() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search by customer name or quote ID..."
+            aria-label="Search quotes"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-[#0B1120] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
@@ -251,7 +255,7 @@ export default function Quotes() {
                     colSpan={6}
                     className="px-6 py-12 text-center text-slate-500"
                   >
-                    <FileText className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+                    <FileText className="w-12 h-12 mx-auto mb-3 text-slate-700" aria-hidden="true" />
                     <p className="text-base font-medium text-slate-400">
                       No quotes found
                     </p>
@@ -295,19 +299,20 @@ export default function Quotes() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {quote.status === "Pending" && (
-                          <Clock className="w-4 h-4 text-amber-500" />
+                          <Clock className="w-4 h-4 text-amber-500" aria-hidden="true" />
                         )}
                         {quote.status === "Accepted" && (
-                          <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          <CheckCircle className="w-4 h-4 text-emerald-500" aria-hidden="true" />
                         )}
                         {quote.status === "Rejected" && (
-                          <XCircle className="w-4 h-4 text-rose-500" />
+                          <XCircle className="w-4 h-4 text-rose-500" aria-hidden="true" />
                         )}
                         <select
                           value={quote.status}
                           onChange={(e) =>
                             handleStatusChange(quote.id!, e.target.value as any)
                           }
+                          aria-label={`Change status for quote ${quote.id}`}
                           className={`text-xs font-bold bg-transparent border-none focus:ring-0 cursor-pointer ${
                             quote.status === "Pending"
                               ? "text-amber-500"
@@ -341,9 +346,10 @@ export default function Quotes() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedQuote(quote)}
+                          aria-label={`View quote ${quote.id}`}
                           className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors inline-flex items-center gap-2"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-4 h-4" aria-hidden="true" />
                           <span className="text-xs font-bold uppercase tracking-wider">
                             View
                           </span>
@@ -354,15 +360,17 @@ export default function Quotes() {
                               onClick={() => handleEditQuote(quote)}
                               className="p-2 text-slate-400 hover:text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors"
                               title="Edit Quote"
+                              aria-label={`Edit quote ${quote.id}`}
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-4 h-4" aria-hidden="true" />
                             </button>
                             <button
                               onClick={() => setQuoteToDelete(quote)}
                               className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors"
                               title="Delete Quote"
+                              aria-label={`Delete quote ${quote.id}`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" aria-hidden="true" />
                             </button>
                           </>
                         )}

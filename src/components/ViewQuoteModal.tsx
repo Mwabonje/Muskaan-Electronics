@@ -39,7 +39,7 @@ export default function ViewQuoteModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a] print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-              <FileText className="w-5 h-5" />
+              <FileText className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
@@ -53,17 +53,19 @@ export default function ViewQuoteModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
+              aria-label="Print Quote"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
               title="Print Quote"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-5 h-5" aria-hidden="true" />
               <span className="text-sm font-bold hidden sm:inline">Print</span>
             </button>
             <button
               onClick={onClose}
+              aria-label="Close quote preview"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -102,7 +104,7 @@ export default function ViewQuoteModal({
                   Quote To
                 </p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
-                  <User className="w-4 h-4 text-slate-400" />
+                  <User className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   {quote.customerName || "Walk-in Customer"}
                 </div>
               </div>
@@ -116,11 +118,11 @@ export default function ViewQuoteModal({
                   <span className="text-slate-500">Quote #:</span> {quote.id}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <Calendar className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   {new Date(quote.date).toLocaleDateString()}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                  <Tag className="w-4 h-4 text-slate-400" />
+                  <Tag className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   Status:{" "}
                   <span
                     className={`px-2 py-0.5 rounded text-xs font-bold ${

@@ -13,7 +13,7 @@ export default function SystemLocked() {
 
       <div className="relative z-10 max-w-md w-full text-center space-y-6">
         <div className="w-24 h-24 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto shadow-xl shadow-rose-500/20">
-          <Lock className="w-12 h-12" />
+          <Lock className="w-12 h-12" aria-hidden="true" />
         </div>
 
         <h1 className="text-4xl font-black tracking-tight text-slate-900">

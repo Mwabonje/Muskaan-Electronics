@@ -235,9 +235,10 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
           <h2 className="text-lg font-bold text-white">{quoteToEdit ? "Edit Quote" : "Generate New Quote"}</h2>
           <button
             onClick={onClose}
+            aria-label="Close modal"
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -245,7 +246,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
         <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
           {error && (
             <div className="p-3 bg-rose-500/10 border border-rose-500/50 rounded-lg flex items-start gap-2 text-rose-500 text-sm">
-              <Shield className="w-4 h-4 mt-0.5 shrink-0" />
+              <Shield className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
               <p>{error}</p>
             </div>
           )}
@@ -271,7 +272,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
                       : "text-slate-400 hover:text-slate-300 hover:bg-slate-800"
                   }`}
                 >
-                  <f.icon className="w-3.5 h-3.5" />
+                  <f.icon className="w-3.5 h-3.5" aria-hidden="true" />
                   {f.label}
                 </button>
               ))}
@@ -316,10 +317,11 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
                     </div>
                     <button
                       onClick={() => handleRemoveItem(item.id)}
+                      aria-label="Remove item"
                       className="mt-6 p-2.5 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
                       disabled={cartItems.length === 1}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
 
@@ -369,7 +371,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
               onClick={handleAddItem}
               className="w-full py-3 border border-dashed border-slate-700 hover:border-slate-500 hover:bg-slate-800/50 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-300 transition-colors flex items-center justify-center gap-2 uppercase tracking-wider"
             >
-              <Plus className="w-4 h-4" /> Add Another Item
+              <Plus className="w-4 h-4" aria-hidden="true" /> Add Another Item
             </button>
           </div>
 
@@ -392,7 +394,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
           {/* Discount */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Tag className="w-3 h-3" /> Discount
+              <Tag className="w-3 h-3" aria-hidden="true" /> Discount
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -433,7 +435,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
           {/* Customer Name */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <User className="w-3 h-3" /> Customer Name (Optional)
+              <User className="w-3 h-3" aria-hidden="true" /> Customer Name (Optional)
             </label>
             <input
               type="text"
@@ -447,7 +449,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
           {/* Notes */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-3 h-3" /> Notes / Remarks
+              <FileText className="w-3 h-3" aria-hidden="true" /> Notes / Remarks
             </label>
             <textarea
               value={notes}
@@ -459,7 +461,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
 
           {/* Quote Summary */}
           <div className="bg-blue-900/10 border border-blue-900/30 rounded-lg p-4 flex gap-3 items-start">
-            <FileText className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <FileText className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" aria-hidden="true" />
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">
                 Quote Summary
@@ -483,7 +485,7 @@ export default function NewQuoteModal({ isOpen, onClose, quoteToEdit }: NewQuote
             onClick={handleConfirmQuote}
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"
           >
-            <FileText className="w-4 h-4" /> {quoteToEdit ? "Update Quote" : "Generate Quote"}
+            <FileText className="w-4 h-4" aria-hidden="true" /> {quoteToEdit ? "Update Quote" : "Generate Quote"}
           </button>
         </div>
       </div>

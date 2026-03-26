@@ -48,9 +48,10 @@ export default function ViewAllActivityModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close activity modal"
             className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -66,9 +67,9 @@ export default function ViewAllActivityModal({
                         activity.type === 'LPO' ? 'bg-purple-500/10 text-purple-400' :
                         'bg-blue-500/10 text-blue-400'
                       }`}>
-                        {activity.type === 'Sale' && <ShoppingCart className="w-4 h-4" />}
-                        {activity.type === 'LPO' && <FileText className="w-4 h-4" />}
-                        {activity.type === 'Delivery' && <Truck className="w-4 h-4" />}
+                        {activity.type === 'Sale' && <ShoppingCart className="w-4 h-4" aria-hidden="true" />}
+                        {activity.type === 'LPO' && <FileText className="w-4 h-4" aria-hidden="true" />}
+                        {activity.type === 'Delivery' && <Truck className="w-4 h-4" aria-hidden="true" />}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-white">

@@ -171,7 +171,7 @@ export default function Layout() {
         <div className="p-6 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart className="w-6 h-6" aria-hidden="true" />
             </div>
             <div className="flex flex-col">
               <h1 className="text-base font-bold text-white leading-tight">
@@ -185,8 +185,9 @@ export default function Layout() {
           <button
             className="lg:hidden p-2 text-slate-400 hover:bg-slate-800 rounded-lg"
             onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close mobile menu"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -206,7 +207,7 @@ export default function Layout() {
               }
             >
               <div className="flex items-center gap-3">
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-5 h-5" aria-hidden="true" />
                 <span className="text-sm">{item.name}</span>
               </div>
               {item.name === "Messages" && unreadMessagesCount !== undefined && unreadMessagesCount > 0 && (
@@ -222,7 +223,7 @@ export default function Layout() {
           <div className="flex items-center justify-between p-3 rounded-lg bg-[#0f172a] border border-slate-800">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 font-bold shrink-0">
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4" aria-hidden="true" />
               </div>
               <div className="overflow-hidden flex-1">
                 <p className="text-xs font-bold text-white truncate">
@@ -241,16 +242,18 @@ export default function Layout() {
                 }}
                 className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2"
                 title="Settings"
+                aria-label="Settings"
               >
-                <SettingsIcon className="w-4 h-4" />
+                <SettingsIcon className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
           </div>
           <button
             onClick={handleLogout}
+            aria-label="Log Out"
             className="mt-2 w-full flex items-center gap-3 px-3 py-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-slate-800/50"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4" aria-hidden="true" />
             <span className="text-sm">Log Out</span>
           </button>
         </div>
@@ -264,14 +267,16 @@ export default function Layout() {
             <button
               className="lg:hidden p-2 -ml-2 text-slate-400 hover:bg-slate-800 rounded-lg"
               onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open mobile menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" aria-hidden="true" />
             </button>
             <div className="relative hidden md:block w-full max-w-md" ref={searchContainerRef}>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Search items..."
+                aria-label="Search items"
                 value={searchQuery}
                 onFocus={() => setIsSearchFocused(true)}
                 onChange={(e) => {
@@ -345,8 +350,8 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:bg-slate-800 rounded-lg border border-slate-800">
-              <Bell className="w-4 h-4" />
+            <button aria-label="Notifications" className="relative p-2 text-slate-400 hover:bg-slate-800 rounded-lg border border-slate-800">
+              <Bell className="w-4 h-4" aria-hidden="true" />
             </button>
             <div className="hidden sm:flex items-center text-sm text-slate-400 font-mono">
               {currentTime.toLocaleDateString("en-US", {

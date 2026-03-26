@@ -39,7 +39,7 @@ export default function ViewDeliveryModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a] print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-              <Truck className="w-5 h-5" />
+              <Truck className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
@@ -53,17 +53,19 @@ export default function ViewDeliveryModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
+              aria-label="Print Delivery Note"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
               title="Print Delivery Note"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-5 h-5" aria-hidden="true" />
               <span className="text-sm font-bold hidden sm:inline">Print</span>
             </button>
             <button
               onClick={onClose}
+              aria-label="Close delivery preview"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -99,7 +101,7 @@ export default function ViewDeliveryModal({
                   Supplier
                 </p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
-                  <Building2 className="w-4 h-4 text-slate-400" />
+                  <Building2 className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   {delivery.supplierName}
                 </div>
               </div>
@@ -108,7 +110,7 @@ export default function ViewDeliveryModal({
                   Received By
                 </p>
                 <div className="flex items-center gap-2 text-slate-800 font-medium">
-                  <User className="w-4 h-4 text-slate-400" />
+                  <User className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   {delivery.receivedBy}
                 </div>
               </div>
@@ -123,7 +125,7 @@ export default function ViewDeliveryModal({
                   {(delivery.id?.toString() || "").padStart(4, "0")}
                 </div>
                 <div className="flex items-center justify-end gap-2 text-slate-800 font-medium">
-                  <Calendar className="w-4 h-4 text-slate-400" />
+                  <Calendar className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   Date: {new Date(delivery.date).toLocaleDateString()}
                 </div>
                 {delivery.lpoNumber && (

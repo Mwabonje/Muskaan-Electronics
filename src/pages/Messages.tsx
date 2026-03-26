@@ -132,7 +132,7 @@ export default function Messages() {
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} alt={u.name} className="w-full h-full object-cover" />
                     </div>
                     {u.status === 'Active' && (
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full" aria-hidden="true"></div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -159,15 +159,16 @@ export default function Messages() {
                 <div className="flex items-center gap-2 sm:gap-4">
                   <button 
                     onClick={() => setSelectedUserId(null)}
+                    aria-label="Back to messages list"
                     className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-800 transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
                   </button>
                   <div className="relative">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedUser.name}`} alt={selectedUser.name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-white rounded-full" aria-hidden="true"></div>
                   </div>
                   <div>
                     <h2 className="font-bold text-slate-800 text-base sm:text-lg">{selectedUser.name}</h2>
@@ -175,8 +176,8 @@ export default function Messages() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 sm:gap-6 text-slate-400">
-                  <button className="hover:text-slate-600 transition-colors hidden sm:block"><Search className="w-5 h-5 sm:w-6 sm:h-6" /></button>
-                  <button className="hover:text-slate-600 transition-colors"><Settings className="w-5 h-5 sm:w-6 sm:h-6" /></button>
+                  <button aria-label="Search conversation" className="hover:text-slate-600 transition-colors hidden sm:block"><Search className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" /></button>
+                  <button aria-label="Conversation settings" className="hover:text-slate-600 transition-colors"><Settings className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" /></button>
                 </div>
               </div>
 
@@ -203,8 +204,9 @@ export default function Messages() {
                           onClick={() => msg.id && handleUnsend(msg.id)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-red-500 p-1 mb-2"
                           title="Unsend message"
+                          aria-label="Unsend message"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       )}
 
@@ -244,20 +246,22 @@ export default function Messages() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder="Type a message"
+                      aria-label="Type a message"
                       className="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-slate-400 py-2 outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-2 sm:gap-5 text-slate-400 px-1 sm:px-2">
-                    <button type="button" className="hover:text-slate-600 transition-colors hidden sm:block"><Smile className="w-5 h-5 sm:w-6 sm:h-6" /></button>
-                    <button type="button" className="hover:text-slate-600 transition-colors"><Paperclip className="w-5 h-5" /></button>
+                    <button type="button" aria-label="Add emoji" className="hover:text-slate-600 transition-colors hidden sm:block"><Smile className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" /></button>
+                    <button type="button" aria-label="Attach file" className="hover:text-slate-600 transition-colors"><Paperclip className="w-5 h-5" aria-hidden="true" /></button>
                   </div>
                   <button
                     type="submit"
                     disabled={!newMessage.trim()}
+                    aria-label="Send message"
                     className="bg-[#3b82f6] hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white px-4 sm:px-8 py-2 sm:py-3 rounded-full sm:rounded-xl font-medium transition-colors flex items-center gap-2 shadow-sm"
                   >
                     <span className="hidden sm:inline">Send</span>
-                    <Send className="w-4 h-4" />
+                    <Send className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </form>
               </div>
@@ -266,7 +270,7 @@ export default function Messages() {
             <div className="flex-1 items-center justify-center text-slate-400 bg-slate-50/50 hidden md:flex flex-col">
               <div className="text-center">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <UserIcon className="w-10 h-10 text-slate-300" />
+                  <UserIcon className="w-10 h-10 text-slate-300" aria-hidden="true" />
                 </div>
                 <p className="text-lg font-medium text-slate-500">Select a user to start messaging</p>
               </div>

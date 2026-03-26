@@ -68,6 +68,8 @@ export default function Settings() {
             
             <button
               onClick={handleToggleQuotes}
+              aria-label="Toggle quotes access for cashiers"
+              aria-pressed={quotesEnabled}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                 quotesEnabled ? "bg-blue-600" : "bg-slate-200"
               }`}
@@ -87,7 +89,7 @@ export default function Settings() {
             <div className="bg-rose-50/50 p-6 border-b border-rose-100">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-rose-100 text-rose-600 rounded-lg">
-                  <AlertTriangle className="w-5 h-5" />
+                  <AlertTriangle className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -113,6 +115,7 @@ export default function Settings() {
 
                 <button
                   onClick={handleToggleLock}
+                  aria-label={isLocked ? "Unlock System" : "Lock System"}
                   className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all whitespace-nowrap ${
                     isLocked
                       ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200"
@@ -121,12 +124,12 @@ export default function Settings() {
                 >
                   {isLocked ? (
                     <>
-                      <Unlock className="w-5 h-5" />
+                      <Unlock className="w-5 h-5" aria-hidden="true" />
                       <span>Unlock System</span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-5 h-5" />
+                      <Lock className="w-5 h-5" aria-hidden="true" />
                       <span>Lock System</span>
                     </>
                   )}
@@ -135,7 +138,7 @@ export default function Settings() {
 
               {isLocked && (
                 <div className="mt-6 p-4 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-3">
-                  <Lock className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <Lock className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
                   <div>
                     <p className="text-sm font-bold text-rose-800">
                       System is currently locked
@@ -159,7 +162,7 @@ export default function Settings() {
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-rose-100 text-rose-600 rounded-lg">
-                  <AlertTriangle className="w-5 h-5" />
+                  <AlertTriangle className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <h2 className="text-lg font-bold text-slate-900">
                   Confirm System Lock
@@ -167,9 +170,10 @@ export default function Settings() {
               </div>
               <button
                 onClick={() => setShowConfirmModal(false)}
+                aria-label="Close confirmation modal"
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 

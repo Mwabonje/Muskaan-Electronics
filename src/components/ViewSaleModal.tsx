@@ -39,7 +39,7 @@ export default function ViewSaleModal({
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-[#0f172a] print:hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-              <FileText className="w-5 h-5" />
+              <FileText className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
@@ -53,17 +53,19 @@ export default function ViewSaleModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
+              aria-label="Print Receipt"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2"
               title="Print Receipt"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-5 h-5" aria-hidden="true" />
               <span className="text-sm font-bold hidden sm:inline">Print</span>
             </button>
             <button
               onClick={onClose}
+              aria-label="Close receipt preview"
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>

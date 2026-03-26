@@ -37,7 +37,7 @@ export default function ConfirmModal({
             <div
               className={`p-3 rounded-full shrink-0 ${isDestructive ? "bg-rose-500/10 text-rose-500" : "bg-blue-500/10 text-blue-500"}`}
             >
-              <AlertTriangle className="w-6 h-6" />
+              <AlertTriangle className="w-6 h-6" aria-hidden="true" />
             </div>
             <div className="pt-1">
               <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
