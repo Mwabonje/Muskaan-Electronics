@@ -37,22 +37,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(foundUser);
             if (foundUser.id) {
               localStorage.setItem("auth_user_id", foundUser.id.toString());
+              localStorage.setItem("auth_user_data", JSON.stringify(foundUser));
             }
           } else if (mounted) {
             setUser(null);
             localStorage.removeItem("auth_user_id");
+            localStorage.removeItem("auth_user_data");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to load user:", error);
+          if (error.message === 'Failed to fetch' || error.message?.includes('network') || !navigator.onLine) {
+            const cachedUserData = localStorage.getItem("auth_user_data");
+            if (cachedUserData && mounted) {
+              try {
+                const parsedUser = JSON.parse(cachedUserData);
+                setUser(parsedUser);
+                setIsLoading(false);
+                return;
+              } catch (e) {
+                // Ignore parse error
+              }
+            }
+          }
           if (mounted) {
             setUser(null);
             localStorage.removeItem("auth_user_id");
+            localStorage.removeItem("auth_user_data");
           }
         }
       } else {
         if (mounted) {
           setUser(null);
           localStorage.removeItem("auth_user_id");
+          localStorage.removeItem("auth_user_data");
         }
       }
       if (mounted) setIsLoading(false);
@@ -68,16 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           loadUser(null);
         } else {
           // If offline, try to get the user from localStorage fallback
-          const cachedUserId = localStorage.getItem("auth_user_id");
-          if (cachedUserId) {
-            db.users.get(parseInt(cachedUserId)).then(cachedUser => {
-              if (cachedUser && mounted) {
-                setUser(cachedUser);
-                setIsLoading(false);
-              } else {
-                loadUser(null);
-              }
-            }).catch(() => loadUser(null));
+          const cachedUserData = localStorage.getItem("auth_user_data");
+          if (cachedUserData && mounted) {
+            try {
+              const parsedUser = JSON.parse(cachedUserData);
+              setUser(parsedUser);
+              setIsLoading(false);
+            } catch {
+              loadUser(null);
+            }
           } else {
             loadUser(null);
           }
@@ -88,16 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }).catch(error => {
       console.error("Failed to get session:", error);
       if (error instanceof Error && (error.message === 'Failed to fetch' || error.message.includes('network'))) {
-        const cachedUserId = localStorage.getItem("auth_user_id");
-        if (cachedUserId) {
-           db.users.get(parseInt(cachedUserId)).then(cachedUser => {
-             if (cachedUser && mounted) {
-               setUser(cachedUser);
-               setIsLoading(false);
-             } else {
-               loadUser(null);
-             }
-           }).catch(() => loadUser(null));
+        const cachedUserData = localStorage.getItem("auth_user_data");
+        if (cachedUserData && mounted) {
+           try {
+             const parsedUser = JSON.parse(cachedUserData);
+             setUser(parsedUser);
+             setIsLoading(false);
+           } catch {
+             loadUser(null);
+           }
            return;
         }
       }
@@ -113,16 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!navigator.onLine) {
           // If offline and we get signed out, it might be due to token refresh failure
           // Fall back to cached user to keep them logged in while offline
-          const cachedUserId = localStorage.getItem("auth_user_id");
-          if (cachedUserId) {
-            db.users.get(parseInt(cachedUserId)).then(cachedUser => {
-              if (cachedUser && mounted) {
-                setUser(cachedUser);
-                setIsLoading(false);
-              } else {
-                loadUser(null);
-              }
-            }).catch(() => loadUser(null));
+          const cachedUserData = localStorage.getItem("auth_user_data");
+          if (cachedUserData && mounted) {
+            try {
+              const parsedUser = JSON.parse(cachedUserData);
+              setUser(parsedUser);
+              setIsLoading(false);
+            } catch {
+              loadUser(null);
+            }
             return;
           }
         }
@@ -142,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(loggedInUser);
     if (loggedInUser.id) {
       localStorage.setItem("auth_user_id", loggedInUser.id.toString());
+      localStorage.setItem("auth_user_data", JSON.stringify(loggedInUser));
     }
   };
 
@@ -149,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem("auth_user_id");
+    localStorage.removeItem("auth_user_data");
   };
 
   // Default to Cashier (least privilege) if no user is logged in for fallback
