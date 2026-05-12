@@ -62,14 +62,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("Auth session error:", error);
-        // Clear the bad session state
-        supabase.auth.signOut().catch(console.error);
-        loadUser(null);
+        // Only clear session if it's not a network error
+        if (error.message !== 'Failed to fetch' && !error.message.includes('network')) {
+          supabase.auth.signOut().catch(console.error);
+          loadUser(null);
+        } else {
+          // If offline, try to get the user from localStorage fallback
+          const cachedUserId = localStorage.getItem("auth_user_id");
+          if (cachedUserId) {
+            db.users.get(parseInt(cachedUserId)).then(cachedUser => {
+              if (cachedUser && mounted) {
+                setUser(cachedUser);
+                setIsLoading(false);
+              } else {
+                loadUser(null);
+              }
+            }).catch(() => loadUser(null));
+          } else {
+            loadUser(null);
+          }
+        }
       } else {
         loadUser(session);
       }
     }).catch(error => {
       console.error("Failed to get session:", error);
+      if (error instanceof Error && (error.message === 'Failed to fetch' || error.message.includes('network'))) {
+        const cachedUserId = localStorage.getItem("auth_user_id");
+        if (cachedUserId) {
+           db.users.get(parseInt(cachedUserId)).then(cachedUser => {
+             if (cachedUser && mounted) {
+               setUser(cachedUser);
+               setIsLoading(false);
+             } else {
+               loadUser(null);
+             }
+           }).catch(() => loadUser(null));
+           return;
+        }
+      }
       supabase.auth.signOut().catch(console.error);
       loadUser(null);
     });
@@ -79,6 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
+        if (!navigator.onLine) {
+          // If offline and we get signed out, it might be due to token refresh failure
+          // Fall back to cached user to keep them logged in while offline
+          const cachedUserId = localStorage.getItem("auth_user_id");
+          if (cachedUserId) {
+            db.users.get(parseInt(cachedUserId)).then(cachedUser => {
+              if (cachedUser && mounted) {
+                setUser(cachedUser);
+                setIsLoading(false);
+              } else {
+                loadUser(null);
+              }
+            }).catch(() => loadUser(null));
+            return;
+          }
+        }
         loadUser(null);
       } else {
         loadUser(session);

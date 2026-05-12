@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { supabase } from "./supabase";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
@@ -112,10 +113,33 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function GlobalAuthRedirect() {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Check if recovery in URL hash to intercept Supabase's redirect to root
+    if (window.location.hash && window.location.hash.includes("type=recovery")) {
+      navigate("/update-password");
+    }
+    
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        navigate("/update-password");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <GlobalAuthRedirect />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/update-password" element={<UpdatePassword />} />
