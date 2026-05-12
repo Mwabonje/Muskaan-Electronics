@@ -55,26 +55,41 @@ export default function Login() {
     setSuccessMessage("");
 
     try {
-      // 1. Authenticate with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      let isNetworkError = false;
 
-      if (authError) {
-        setError(authError.message);
-        return;
+      // 1. Try to authenticate with Supabase Auth if online
+      if (navigator.onLine) {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) {
+          isNetworkError = authError.message === 'Failed to fetch' || authError.message.includes('network');
+          if (!isNetworkError) {
+            setError(authError.message);
+            return;
+          }
+        }
       }
 
-      // 2. Fetch user profile from custom users table
+      // 2. Fetch user profile from custom users table (works offline thanks to dexie)
       const user = await db.users
         .where("email")
         .equalsIgnoreCase(email)
         .first();
 
+      // 3. Offline password validation
+      if (!navigator.onLine || isNetworkError) {
+        if (!user || user.password !== password) {
+          setError("Invalid credentials or offline login restricted.");
+          return;
+        }
+      }
+
       if (user) {
         if (user.status === "Inactive") {
-          await supabase.auth.signOut();
+          if (navigator.onLine && !isNetworkError) await supabase.auth.signOut();
           setError(
             "This account is inactive. Please contact an administrator.",
           );
@@ -83,7 +98,7 @@ export default function Login() {
 
         const isLocked = await getSystemSetting("system_locked") === "true";
         if (isLocked && user.role !== "Super Admin") {
-          await supabase.auth.signOut();
+          if (navigator.onLine && !isNetworkError) await supabase.auth.signOut();
           setError(
             "System is currently locked for maintenance. Please contact an administrator.",
           );
@@ -114,7 +129,7 @@ export default function Login() {
         login(user);
         navigate("/dashboard");
       } else {
-        await supabase.auth.signOut();
+        if (navigator.onLine && !isNetworkError) await supabase.auth.signOut();
         setError("User profile not found in database. Please contact an administrator.");
       }
     } catch (err: any) {
