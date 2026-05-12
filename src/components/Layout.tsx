@@ -25,6 +25,7 @@ import { useAuth } from "../context/AuthContext";
 import { getSystemSetting } from "../utils/settings";
 import { db } from "../db/db";
 import { useLiveQuery } from "../hooks/useLiveQuery";
+import useOnlineStatus from "../hooks/useOnlineStatus";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -38,6 +39,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, role, logout, isLoading } = useAuth();
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -347,6 +349,12 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {!isOnline && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                Offline Mode
+              </div>
+            )}
             <button aria-label="Notifications" className="relative p-2 text-slate-400 hover:bg-slate-800 rounded-lg border border-slate-800">
               <Bell className="w-4 h-4" aria-hidden="true" />
             </button>
