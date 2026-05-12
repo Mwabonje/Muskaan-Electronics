@@ -102,7 +102,6 @@ export default function Layout() {
       name: "Settings",
       path: "/settings",
       icon: SettingsIcon,
-      hideFor: ["Cashier", "Manager", "Admin"],
     },
   ];
 
@@ -234,19 +233,17 @@ export default function Layout() {
                 </p>
               </div>
             </div>
-            {role === "Super Admin" && (
-              <button
-                onClick={() => {
-                  navigate("/settings");
-                  setIsMobileMenuOpen(false);
-                }}
-                className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2"
-                title="Settings"
-                aria-label="Settings"
-              >
-                <SettingsIcon className="w-4 h-4" aria-hidden="true" />
-              </button>
-            )}
+            <button
+              onClick={() => {
+                navigate("/settings");
+                setIsMobileMenuOpen(false);
+              }}
+              className="text-slate-400 hover:text-white transition-colors shrink-0 ml-2"
+              title="Settings"
+              aria-label="Settings"
+            >
+              <SettingsIcon className="w-4 h-4" aria-hidden="true" />
+            </button>
           </div>
           <button
             onClick={handleLogout}

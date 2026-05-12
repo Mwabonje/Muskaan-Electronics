@@ -19,13 +19,40 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    if (!email) {
+      setError("Please enter your email address first to reset your password.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`, 
+      });
+
+      if (error) {
+        setError(error.message);
+      } else {
+        setSuccessMessage("Password reset email sent! Please check your inbox.");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred while sending reset email.");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     try {
       // 1. Authenticate with Supabase Auth
@@ -127,6 +154,11 @@ export default function Login() {
                   {error}
                 </div>
               )}
+              {successMessage && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-sm font-medium">
+                  {successMessage}
+                </div>
+              )}
 
               <div className="flex flex-col gap-2">
                 <label
@@ -160,6 +192,7 @@ export default function Login() {
                   </label>
                   <a
                     href="#"
+                    onClick={handleForgotPassword}
                     className="text-xs text-primary hover:underline font-semibold"
                   >
                     Forgot password?

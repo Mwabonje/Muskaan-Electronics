@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Lock, Unlock, AlertTriangle, X } from "lucide-react";
+import { Lock, Unlock, AlertTriangle, X, Key } from "lucide-react";
 import { getSystemSetting, setSystemSetting } from "../utils/settings";
+import { supabase } from "../supabase";
 
 export default function Settings() {
   const { role } = useAuth();
   const [isLocked, setIsLocked] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [quotesEnabled, setQuotesEnabled] = useState(true);
+
+  // Password update state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,6 +53,38 @@ export default function Settings() {
     setShowConfirmModal(false);
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordSuccess("Password updated successfully!");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to update password");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   return (
     <div className="p-4 sm:p-8 max-w-4xl mx-auto relative">
       <h1 className="text-3xl font-black leading-tight tracking-tight mb-6">
@@ -53,34 +93,91 @@ export default function Settings() {
 
       <div className="space-y-6">
         {/* General Settings */}
-        <div className="bg-white p-8 rounded-xl border border-primary/10 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">
-            General Settings
-          </h2>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-slate-100 last:border-0">
-            <div>
-              <h3 className="font-bold text-slate-900">Quotes Access for Cashiers</h3>
-              <p className="text-sm text-slate-500 mt-1 max-w-xl">
-                Enable or disable the ability for Cashiers to view and create Quotes.
-              </p>
-            </div>
+        {(role === "Super Admin" || role === "Admin" || role === "Manager") && (
+          <div className="bg-white p-8 rounded-xl border border-primary/10 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-6">
+              General Settings
+            </h2>
             
-            <button
-              onClick={handleToggleQuotes}
-              aria-label="Toggle quotes access for cashiers"
-              aria-pressed={quotesEnabled}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                quotesEnabled ? "bg-blue-600" : "bg-slate-200"
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  quotesEnabled ? "translate-x-6" : "translate-x-1"
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-slate-100 last:border-0">
+              <div>
+                <h3 className="font-bold text-slate-900">Quotes Access for Cashiers</h3>
+                <p className="text-sm text-slate-500 mt-1 max-w-xl">
+                  Enable or disable the ability for Cashiers to view and create Quotes.
+                </p>
+              </div>
+              
+              <button
+                onClick={handleToggleQuotes}
+                aria-label="Toggle quotes access for cashiers"
+                aria-pressed={quotesEnabled}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  quotesEnabled ? "bg-blue-600" : "bg-slate-200"
                 }`}
-              />
-            </button>
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    quotesEnabled ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Change Password Settings */}
+        <div className="bg-white p-8 rounded-xl border border-primary/10 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <Key className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
+              <p className="text-sm text-slate-500">Update your account password</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
+            {passwordError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-medium">
+                {passwordError}
+              </div>
+            )}
+            {passwordSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-lg text-sm font-medium">
+                {passwordSuccess}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">New Password</label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Confirm New Password</label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm text-slate-900"
+                placeholder="Confirm new password"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isUpdatingPassword}
+              className="mt-4 px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-bold rounded-lg transition-colors flex justify-center disabled:opacity-50"
+            >
+              {isUpdatingPassword ? "Updating..." : "Update Password"}
+            </button>
+          </form>
         </div>
 
         {/* Super Admin Only: System Maintenance */}
