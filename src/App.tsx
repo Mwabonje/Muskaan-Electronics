@@ -21,6 +21,7 @@ import CustomerReturns from "./pages/CustomerReturns";
 import Messages from "./pages/Messages";
 import Quotes from "./pages/Quotes";
 import SystemLocked from "./components/SystemLocked";
+import UpdatePassword from "./pages/UpdatePassword";
 import { getSystemSetting } from "./utils/settings";
 
 // A simple wrapper to protect routes based on role
@@ -117,6 +118,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
 
           <Route
             path="/pos"
