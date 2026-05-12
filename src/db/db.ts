@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { localDb, processSyncQueue } from "./offlineSync";
 
 export type Role = "Super Admin" | "Admin" | "Manager" | "Cashier";
 export type Status = "Active" | "Inactive";
@@ -32,9 +33,9 @@ export interface SaleItem {
   quantity: number;
   price: number;
   subtotal: number;
-  unitCost?: number | string; // Added for ViewLPOModal
-  refundAmount?: number | string; // Added for ViewReturnModal
-  condition?: "Good" | "Damaged"; // Added for ViewReturnModal
+  unitCost?: number | string;
+  refundAmount?: number | string;
+  condition?: "Good" | "Damaged";
 }
 
 export interface Sale {
@@ -45,9 +46,9 @@ export interface Sale {
   date: string;
   customerName?: string;
   notes?: string;
-  subtotal?: number; // Added for ViewSaleModal
-  discount?: number; // Added for ViewSaleModal
-  tax?: number; // Added for POS
+  subtotal?: number;
+  discount?: number;
+  tax?: number;
   userId?: number;
   userName?: string;
 }
@@ -78,12 +79,12 @@ export interface PurchaseOrder {
   userName?: string;
 }
 
-export type LPO = PurchaseOrder; // Alias for PurchaseOrders.tsx
+export type LPO = PurchaseOrder;
 
 export interface Delivery {
   id?: number;
   purchaseOrderId?: number;
-  lpoNumber?: string; // Added for Deliveries.tsx
+  lpoNumber?: string;
   items: SaleItem[];
   supplierName: string;
   date: string;
@@ -96,7 +97,7 @@ export interface Delivery {
 export interface Return {
   id?: number;
   saleId?: number;
-  originalSaleId?: number; // Added for CustomerReturns.tsx
+  originalSaleId?: number;
   items: SaleItem[];
   totalRefund: number;
   customerName: string;
@@ -107,7 +108,7 @@ export interface Return {
   userName?: string;
 }
 
-export type CustomerReturn = Return; // Alias for CustomerReturns.tsx
+export type CustomerReturn = Return;
 
 export interface StockHistory {
   id?: number;
@@ -134,7 +135,6 @@ export interface Message {
   type: "system" | "user";
 }
 
-// Simple event emitter to trigger re-renders for useLiveQuery
 const listeners = new Set<() => void>();
 const triggerUpdate = () => {
   listeners.forEach((listener) => listener());
@@ -152,98 +152,200 @@ class TableAdapter<T extends { id?: number }> {
   }
 
   async toArray(): Promise<T[]> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select("*")
-      .order("id", { ascending: true });
-    if (error) {
-      console.error(`Error fetching ${this.tableName}:`, error);
-      return [];
+    if (navigator.onLine) {
+      try {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select("*")
+          .order("id", { ascending: true });
+        if (!error && data) {
+          await localDb.table(this.tableName).clear();
+          await localDb.table(this.tableName).bulkPut(data);
+          processSyncQueue();
+          return data as T[];
+        }
+      } catch (e) {}
     }
-    return data as T[];
+    const items = await localDb.table(this.tableName).toArray();
+    return items.sort((a, b) => (a.id || 0) - (b.id || 0)) as T[];
   }
 
   async add(item: T): Promise<number> {
     const { id, ...rest } = item;
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .insert(rest)
-      .select("id")
-      .single();
-    if (error) throw error;
+    if (navigator.onLine) {
+      try {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .insert(rest)
+          .select("id")
+          .single();
+        if (!error && data) {
+          await localDb.table(this.tableName).put({ ...item, id: data.id });
+          triggerUpdate();
+          processSyncQueue();
+          return data.id;
+        }
+      } catch (e) {}
+    }
+    
+    const tempId = -Math.floor(Math.random() * 1000000);
+    const localItem = { ...item, id: tempId };
+    await localDb.table(this.tableName).put(localItem);
+    await localDb.table("syncQueue").add({
+      tableName: this.tableName,
+      operation: "add",
+      payload: rest,
+      recordId: tempId
+    });
     triggerUpdate();
-    return data.id;
+    return tempId;
   }
 
   async bulkAdd(items: T[]): Promise<void> {
     const itemsWithoutId = items.map(({ id, ...rest }) => rest);
-    const { error } = await supabase
-      .from(this.tableName)
-      .insert(itemsWithoutId);
-    if (error) throw error;
-    triggerUpdate();
+    if (navigator.onLine) {
+      try {
+        const { error, data } = await supabase
+          .from(this.tableName)
+          .insert(itemsWithoutId)
+          .select();
+        if (!error && data) {
+          await localDb.table(this.tableName).bulkPut(data);
+          triggerUpdate();
+          processSyncQueue();
+          return;
+        }
+      } catch (e) {}
+    }
+    for (const item of items) {
+      await this.add(item);
+    }
   }
 
   async update(id: number, changes: Partial<T>): Promise<void> {
-    const { error } = await supabase
-      .from(this.tableName)
-      .update(changes)
-      .eq("id", id);
-    if (error) throw error;
+    if (navigator.onLine) {
+      try {
+        const { error } = await supabase
+          .from(this.tableName)
+          .update(changes)
+          .eq("id", id);
+        if (!error) {
+          const item = await localDb.table(this.tableName).get(id);
+          if (item) await localDb.table(this.tableName).put({ ...item, ...changes });
+          triggerUpdate();
+          processSyncQueue();
+          return;
+        }
+      } catch (e) {}
+    }
+    const item = await localDb.table(this.tableName).get(id);
+    if (item) await localDb.table(this.tableName).put({ ...item, ...changes });
+    await localDb.table("syncQueue").add({
+      tableName: this.tableName,
+      operation: "update",
+      payload: changes,
+      recordId: id
+    });
     triggerUpdate();
   }
 
   async delete(id: number): Promise<void> {
-    const { error } = await supabase.from(this.tableName).delete().eq("id", id);
-    if (error) throw error;
+    if (navigator.onLine) {
+      try {
+        const { error } = await supabase.from(this.tableName).delete().eq("id", id);
+        if (!error) {
+          await localDb.table(this.tableName).delete(id);
+          triggerUpdate();
+          processSyncQueue();
+          return;
+        }
+      } catch (e) {}
+    }
+    await localDb.table(this.tableName).delete(id);
+    await localDb.table("syncQueue").add({
+      tableName: this.tableName,
+      operation: "delete",
+      payload: { id },
+      recordId: id
+    });
     triggerUpdate();
   }
 
   async clear(): Promise<void> {
-    const { error } = await supabase.from(this.tableName).delete().neq("id", 0);
-    if (error) throw error;
+    if (navigator.onLine) {
+      try {
+        const { error } = await supabase.from(this.tableName).delete().neq("id", 0);
+        if (!error) {
+          await localDb.table(this.tableName).clear();
+          triggerUpdate();
+          return;
+        }
+      } catch (e) {}
+    }
+    await localDb.table(this.tableName).clear();
     triggerUpdate();
   }
 
   async count(): Promise<number> {
-    const { count, error } = await supabase
-      .from(this.tableName)
-      .select("*", { count: "exact", head: true });
-    if (error) throw error;
-    return count || 0;
+    if (navigator.onLine) {
+      try {
+        const { count, error } = await supabase
+          .from(this.tableName)
+          .select("*", { count: "exact", head: true });
+        if (!error) return count || 0;
+      } catch (e) {}
+    }
+    return await localDb.table(this.tableName).count();
   }
 
   async get(id: number): Promise<T | undefined> {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error) {
-      if (error.code === 'PGRST116') return undefined;
-      console.error(`Error in get for ${this.tableName}:`, error);
-      throw error;
+    if (navigator.onLine) {
+      try {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (!error && data) {
+          await localDb.table(this.tableName).put(data);
+          return data as T;
+        }
+      } catch (e) {}
     }
-    return data as T;
+    return await localDb.table(this.tableName).get(id);
   }
 
   reverse() {
     return {
       toArray: async () => {
-        const { data, error } = await supabase
-          .from(this.tableName)
-          .select("*")
-          .order("id", { ascending: false });
-        if (error) throw error;
-        return data as T[];
+        if (navigator.onLine) {
+          try {
+            const { data, error } = await supabase
+              .from(this.tableName)
+              .select("*")
+              .order("id", { ascending: false });
+            if (!error && data) return data as T[];
+          } catch (e) {}
+        }
+        const items = await localDb.table(this.tableName).toArray();
+        return items.sort((a, b) => (b.id || 0) - (a.id || 0)) as T[];
       },
       sortBy: async (field: string) => {
-        const { data, error } = await supabase
-          .from(this.tableName)
-          .select("*")
-          .order(field, { ascending: false });
-        if (error) throw error;
-        return data as T[];
+        if (navigator.onLine) {
+          try {
+            const { data, error } = await supabase
+              .from(this.tableName)
+              .select("*")
+              .order(field, { ascending: false });
+            if (!error && data) return data as T[];
+          } catch (e) {}
+        }
+        const items = await localDb.table(this.tableName).toArray();
+        return items.sort((a, b) => {
+          if (a[field as keyof T] < b[field as keyof T]) return 1;
+          if (a[field as keyof T] > b[field as keyof T]) return -1;
+          return 0;
+        }) as T[];
       },
     };
   }
@@ -252,53 +354,69 @@ class TableAdapter<T extends { id?: number }> {
     return {
       equals: (value: any) => ({
         count: async () => {
-          const { count, error } = await supabase
-            .from(this.tableName)
-            .select("*", { count: "exact", head: true })
-            .eq(field, value);
-          if (error) throw error;
-          return count || 0;
+          if (navigator.onLine) {
+            try {
+              const { count, error } = await supabase
+                .from(this.tableName)
+                .select("*", { count: "exact", head: true })
+                .eq(field, value);
+              if (!error) return count || 0;
+            } catch (e) {}
+          }
+          const items = await localDb.table(this.tableName).where(field as string).equals(value).toArray();
+          return items.length;
         },
         first: async () => {
-          const { data, error } = await supabase
-            .from(this.tableName)
-            .select("*")
-            .eq(field, value)
-            .limit(1)
-            .single();
-          if (error) {
-            if (error.code === 'PGRST116') return undefined;
-            console.error(`Error in equals for ${this.tableName}:`, error);
-            throw error;
+          if (navigator.onLine) {
+            try {
+              const { data, error } = await supabase
+                .from(this.tableName)
+                .select("*")
+                .eq(field, value)
+                .limit(1)
+                .single();
+              if (!error && data) return data as T;
+            } catch (e) {}
           }
-          return data as T;
+          const items = await localDb.table(this.tableName).where(field as string).equals(value).toArray();
+          return items[0] as T | undefined;
         },
         reverse: () => ({
           sortBy: async (sortField: string) => {
-            const { data, error } = await supabase
-              .from(this.tableName)
-              .select("*")
-              .eq(field, value)
-              .order(sortField, { ascending: false });
-            if (error) throw error;
-            return data as T[];
+            if (navigator.onLine) {
+              try {
+                const { data, error } = await supabase
+                  .from(this.tableName)
+                  .select("*")
+                  .eq(field, value)
+                  .order(sortField, { ascending: false });
+                if (!error && data) return data as T[];
+              } catch (e) {}
+            }
+            const items = await localDb.table(this.tableName).where(field as string).equals(value).toArray();
+            return items.sort((a, b) => {
+              if (a[sortField as keyof T] < b[sortField as keyof T]) return 1;
+              if (a[sortField as keyof T] > b[sortField as keyof T]) return -1;
+              return 0;
+            }) as T[];
           },
         }),
       }),
       equalsIgnoreCase: (value: string) => ({
         first: async () => {
-          const { data, error } = await supabase
-            .from(this.tableName)
-            .select("*")
-            .ilike(field, value)
-            .limit(1)
-            .single();
-          if (error) {
-            if (error.code === 'PGRST116') return undefined; // No rows found
-            console.error(`Error in equalsIgnoreCase for ${this.tableName}:`, error);
-            throw error;
+          if (navigator.onLine) {
+            try {
+              const { data, error } = await supabase
+                .from(this.tableName)
+                .select("*")
+                .ilike(field, value)
+                .limit(1)
+                .single();
+              if (!error && data) return data as T;
+            } catch (e) {}
           }
-          return data as T;
+          const items = await localDb.table(this.tableName).toArray();
+          return items.find(i => String(i[field as keyof T]).toLowerCase() === value.toLowerCase()) as T | undefined;
         },
       }),
     };
@@ -307,13 +425,19 @@ class TableAdapter<T extends { id?: number }> {
   filter(predicate: (item: T) => boolean) {
     return {
       toArray: async () => {
-        const { data, error } = await supabase.from(this.tableName).select("*");
-        if (error) throw error;
-        return (data as T[]).filter(predicate);
+        if (navigator.onLine) {
+          try {
+            const { data, error } = await supabase.from(this.tableName).select("*");
+            if (!error && data) return (data as T[]).filter(predicate);
+          } catch (e) {}
+        }
+        const items = await localDb.table(this.tableName).toArray();
+        return items.filter(predicate) as T[];
       },
     };
   }
 }
+
 
 export const db = {
   users: new TableAdapter<User>("users"),
